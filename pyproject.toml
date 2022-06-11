@@ -1,0 +1,25 @@
+[project]
+name = "JenTrace"
+version = "1.0.0"
+description = "Python library for optical ray tracing"
+readme = "README.md"
+requires-python = ">=3.7"
+license = {file = "LICENSE.txt"}
+keywords = ["Ray tracing", "Optical design", "Software development", "Optimization"]
+authors = [
+    {email = "davidlvasquez@gmail.com"},
+	{name = "David L. Vasquez"}
+]
+classifiers = [
+	"Programming Language :: Python"
+]
+
+[project.urls]
+homepage = "https://github.com/dlvasquezp/JenTrace"
+repository = "https://github.com/dlvasquezp/JenTrace"
+documentation = "https://github.com/dlvasquezp/JenTrace"
+
+
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
