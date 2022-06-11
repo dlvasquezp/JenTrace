@@ -29,7 +29,7 @@ In case you were not able to download the module from PyPi. One option to use th
 ### Example
 
 Check the following example, to see the JenTrace capabilites:
-https://github.com/dlvasquezp/JenTrace/blob/master/examples/GettingStarted.ipynb
+https://github.com/dlvasquezp/JenTrace/blob/main/examples/quickStart.ipynb
 
 ## For Developers
 
