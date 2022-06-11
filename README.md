@@ -19,7 +19,7 @@ This project is oriented to entusiast and students with interest in optical desi
 ### Installing
 Install the module using the following pip command (for Windows users, you can use the Powershell promp of Anaconda),
 
-    pip install -i https://pypi.org/ JenTrace
+    pip install JenTrace
 
 In case you were not able to download the module from PyPi. One option to use the JenTrace module consist in downloading the "src" folder in your computer and adding the path manually. Use the command sys.path.append with the path where you save the "src" folder.
 
