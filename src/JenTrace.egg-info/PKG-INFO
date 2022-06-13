@@ -1,6 +1,6 @@
 Metadata-Version: 2.1
 Name: JenTrace
-Version: 1.0.1
+Version: 1.0.2
 Summary: Python library for optical ray tracing
 Home-page: https://github.com/dlvasquezp/JenTrace
 Author: David L. Vasquez
@@ -20,7 +20,7 @@ Python-based ray trace library for optical design and optimization.
 
 ## Description
 
-W.T. Welford in his book titled "Aberrations of the symmetrical optical systems"(Academic Press Inc, 1974) descrive a simple sequential algorithm to trace rays through spherical surfaces. This algorithm, called from now on "trace", is implemented in a python function and will be the core of this module. Additional concepts such as ray, surface, point source and optical system have been defined in classes which are going to be used in the optical designs. The data stored in the classes is intendet to be transparent to the user, in case he or she want to display the information or the results in a particular way. Nevertheless, a few basic functions for visualization and optimization are provided to the user, which are based on the modules matplotlib and scipy respectively.
+W.T. Welford in his book titled "Aberrations of the symmetrical optical systems"(Academic Press Inc, 1974) describes a simple sequential algorithm to trace rays through spherical surfaces. This algorithm, called from now on "trace", is implemented in a python function and will be the core of this module. Additional concepts such as ray, surface, point source and optical system have been defined in classes which are going to be used in the optical designs. The data stored in the classes is intended to be transparent to the user, in case he or she wants to display the information or the results in a particular way. Nevertheless, a few basic functions for visualization and optimization are provided to the user, which are based on the modules matplotlib and scipy respectively.
 This project is oriented to entusiast and students with interest in optical design and programming. 
 
 ## Getting Started
@@ -78,10 +78,10 @@ Two sub-classes of ray source are supported:
 2.1.1)PointSource: all the rays share the same origin ([X,Y,Z]) but differ in 
                    the direction.
                    
-2.1.2)InfinitySource: all the raysshare the same direction ([L,M,N]) but differ 
+2.1.2)InfinitySource: all the rays share the same direction ([L,M,N]) but differ 
                       in the origin.
 
-In the Point/Infinity source, the ray position (index) has a particular roll. 
+In the Point/Infinity source, the ray position (index) has a particular role. 
 The first 5 rays (0 to 4) are named "essential" because they are necessary for 
 any optical design characterization.
             
@@ -103,30 +103,24 @@ any optical design characterization.
     
 
     
-2.2) opt_sys: a optical system is a collection of surfaces (lists).
+2.2) opt_sys: an optical system is a collection of surfaces (lists).
             
-    #           Nmae              
+    #           Name              
     0           object
     1           surface
     ...         surface  
     N           image (last surface) 
     
-Finally with a ray source and an optical system a ray trace can be done,
+Finally with a ray source and an optical system a ray trace can be done.
 
 3.1) trace: A trace is a function where the rays are propagated through the 
             surfaces. It is based on propagation Welford's method. It returns 
             a matrix called RayTrace with the propagation values.
             
-For sake of simplicity an optical design is define, which will find automatically 
-the values need for the design evaluation:
+For sake of simplicity an optical design is defined, which will find automatically 
+the values needed for the design evaluation:
 
-4.1) opt_dsg: A optical design accepts a ray source and a optical system to 
-              to perform a ray trace. An important attribute of the optical 
-              design is the position and size of the AP. With this information
-              the optical system can calculate the rays direction and optical 
-              properties of the system.
-              
-              Each optical design has the following attributes:
+4.1) opt_dsg: An optical design accepts a ray source and an optical system to perform a ray trace. An important attribute of the optical design is the position and size of the AP. With this information the optical system can calculate the rays direction and optical properties of the system. Each optical design has the following attributes:
               
               Arguments passed by the user:
               usrSrc: user defined point/infinity source
@@ -162,6 +156,8 @@ Variables: CapWords + short name
 
 ## Contributors
 David L. Vasquez
+
+S. M. Miftahul Islam
 
 ## Acknowledgements
 Prof. Yobani Mejia from Universidad Nacional de Colombia
