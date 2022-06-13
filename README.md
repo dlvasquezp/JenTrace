@@ -140,6 +140,7 @@ Variables: CapWords + short name
 
 ## Contributors
 David L. Vasquez
+
 S. M. Miftahul Islam
 
 ## Acknowledgements
