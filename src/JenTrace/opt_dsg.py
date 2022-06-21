@@ -17,6 +17,7 @@ from JenTrace.mrt_fnc import LMN_apertureStop,XYZ_apertureStop,XYZ_image
 from JenTrace.spt_dgm import spot_diagram
 from scipy.optimize import minimize, brute, fmin
 import matplotlib.pyplot as plt
+import numpy as np
 
 class OpDesign:
     '''
@@ -25,12 +26,13 @@ class OpDesign:
     
     Falta: Documentacion
     '''
-    def __init__(self,usrSrc,optSys,aprRad=1.0,aprInd=1):
+    def __init__(self,usrSrc,optSys,aprRad=1.0,aprInd=1,systemType='default'):
         #Attributes
         self.usrSrc  = usrSrc
         self.optSys  = optSys
         self.aprRad  = 1.0 
         self.aprInd  = 1
+        self.designType = systemType
         #Assign aperture attributes
         self.change_aperture_radius(aprRad)
         self.change_aperture_index(aprInd)
@@ -64,8 +66,18 @@ class OpDesign:
             self.dsgSolved = True
             #print(self.dsgError)
         else:
-            print(self.dsgError)
-            raise Warning('numerical error out of bounds, check aperture index or radius')
+            if self.dsgError[2] > self.tolError:
+                if self.designType =='telecentric':
+                    self.dsgSolved   = True
+                    self.dsgInfSrc   = np.nan
+                    self.dsgInfTrace = np.nan
+                    self.dsgError[2] = np.nan
+                else:
+                    print(self.dsgError)
+                    raise Warning('numerical error out of bounds, to disable this warning due to telecentricity, pass designType="telecentric"')
+            else:
+                print(self.dsgError)
+                raise Warning('numerical error out of bounds, check aperture index or radius')
         
     def trace_optical_design(self):
         self.raySrcTrace = trace(self.usrSrc.RayList   ,self.optSys.SurfaceData)
