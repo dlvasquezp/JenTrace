@@ -30,7 +30,7 @@ def plot_system(optObj, fig=[], ax=[], clearSemDia=[]):
     
     #Check figure and axis instance
     assert fig.__class__.__name__=='Figure'     ,'Invalid figure [fig] instance'
-    assert ax.__class__.__name__ =='AxesSubplot','Invalid axes [ax] instance'
+    assert ax.__class__.__name__ =='Axes','Invalid axes [ax] instance'
     
     #number of surfaces
     surf_len = len(optSystem.SurfaceData)
@@ -204,7 +204,7 @@ def plot_rayTrace(rayTrace, fig=[], ax=[], color='b'):
     #Check instances
     assert rayTrace.__class__.__name__=='ndarray','Invalid rayTrace' 
     assert fig.__class__.__name__=='Figure'      ,'Invalid figure [fig] instance'
-    assert ax.__class__.__name__ =='AxesSubplot' ,'Invalid axes [ax] instance'
+    assert ax.__class__.__name__ =='Axes' ,'Invalid axes [ax] instance'
     #number of surfaces
     dim = rayTrace.shape
     lines2D  = []

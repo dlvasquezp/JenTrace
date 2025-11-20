@@ -26,7 +26,7 @@ def spot_diagram(optDsg, noRays=1000, show=False, plotType ='posXYZ', surfIndex=
     noRays: Initial number of rays to porpagate. Note that due to the filtering, the final rays are less
     show: Boolean to show the plot
     plotType: Two types are posible, either the ray position (posXYZ) or ray cosine direction (cosDir) 
-    surfIndex: Surface index of the selected plane. By dafault is the image plane selcted
+    surfIndex: Surface index of the selected plane. By dafault is the image plane selected
     color: plot color, see Matplotlib.
     '''
     
@@ -43,7 +43,10 @@ def spot_diagram(optDsg, noRays=1000, show=False, plotType ='posXYZ', surfIndex=
             # Instantiate sampling (sam) source
             samSrcXYZ = usrSrc.Position
             samSrcWvln= usrSrc.Wavelength
-            samSrcLM  =[[random.uniform(xlim[0],xlim[1]),random.uniform(ylim[0],ylim[1])] for q in range(noRays)]
+            # rays distribution
+            samSrcLM  =[[random.uniform(xlim[0],xlim[1]),random.uniform(ylim[0],ylim[1])] for _ in range(noRays)]
+            #samSrcLM  =[[random.uniform(xlim[0],xlim[1]),(ylim[0]+ylim[1])/2] for _ in range(noRays)]
+            #samSrcLM  =[[(xlim[0]+xlim[1])/2,random.uniform(ylim[0],ylim[1])] for _ in range(noRays)]
             
             LMN     = RaySource.calc_direcCos([samSrcLM[0][0],samSrcLM[0][1],1])
             samSrc  = RaySource (samSrcXYZ,LMN,samSrcWvln)
@@ -62,6 +65,7 @@ def spot_diagram(optDsg, noRays=1000, show=False, plotType ='posXYZ', surfIndex=
             # Instantiate sampling (sam) source
             samSrcLMN = usrSrc.DirecCos
             samSrcWvln= usrSrc.Wavelength
+            # rays distribution
             samSrcXYZ =[[random.uniform(xlim[0],xlim[1]),random.uniform(ylim[0],ylim[1]),0] for q in range(noRays)]
             
             samSrc  = RaySource (samSrcXYZ[0],samSrcLMN,samSrcWvln)
@@ -143,19 +147,20 @@ if __name__ == '__main__':
     
     # Instantiate optical system
     syst1 = OpSysData()
-    syst1.change_surface(60     ,0         ,1      ,surfIndex=0) 
-    syst1.add_surface   (3.50   ,1/15.37   ,'N-BK7')
+    syst1.change_surface(30     ,0         ,1      ,surfIndex=0) 
+    syst1.add_surface   (3.50   ,1/12.37   ,'N-BK7')
     syst1.add_surface   (1.50   ,1/-11.10  ,'N-SF5')
-    syst1.add_surface   (10     ,1/-31.47  ,1      )
+    syst1.add_surface   (5     ,1/-25.47  ,1.4     )
+    syst1.add_surface   (5     ,0         ,1      )
     #syst1.changeAperture(1,surfIndex=2)
-    clearSemDia=[1,5.0,5.0,5.0,1]
+    clearSemDia=[1,5.0,5.0,5.0,5.0,1]
     syst1.plot_optical_system(clearSemDia)
     
     # Instantiate point source
-    pto1  = PointSource([0,2.5,0],635)
+    pto1  = PointSource([4,4,0],635)
     
     # Instantiate optical design
-    design1  = OpDesign(pto1,syst1,aprRad=2)
+    design1  = OpDesign(pto1,syst1,aprRad=2,aprInd=4)
     
     # autofocus
     design1.autofocus()

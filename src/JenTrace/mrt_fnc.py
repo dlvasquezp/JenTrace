@@ -136,11 +136,11 @@ def XYZ_image (x0,*arg):
     the rays with index from 1 to 4 describe the focus error distance.
     
     x0:   (list[float]) distance
-    *arg: (list) [object optical design, int indexRay]
+    *arg: (list) [object optical design, object point source]
     
     # x0 must be float
     # arg[0] must be Optical design
-    # arg[1] must be int [0,1,2,3,4]
+    # arg[1] must be point source
     
     '''
     #rename values
@@ -188,10 +188,10 @@ def XYZ_image (x0,*arg):
 
 
 if __name__=='__main__':
-    from ray_src import PointSource
-    from opt_sys import OpSysData
-    from opt_dsg import OpDesign
-    from plt_fnc import plot_system,plot_rayTrace 
+    from JenTrace.ray_src import PointSource
+    from JenTrace.opt_sys import OpSysData
+    from JenTrace.opt_dsg import OpDesign
+    from JenTrace.plt_fnc import plot_system,plot_rayTrace 
 
     import matplotlib.pyplot as plt
     
@@ -199,9 +199,10 @@ if __name__=='__main__':
     syst1 = OpSysData()
     syst1.add_surface(2,0.05,1.7)
     syst1.add_surface(10,-0.5,1.4)
+    print(syst1)
     #syst1.changeAperture(1,surfIndex = 1)
     
-    design1  = OpDesign(pto1,syst1)
+    design1  = OpDesign(pto1,syst1,aprRad=1.0,aprInd=2)
     design1.autofocus()
     
     fig, ax = plt.subplots()

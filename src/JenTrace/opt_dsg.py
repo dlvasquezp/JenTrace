@@ -64,7 +64,6 @@ class OpDesign:
         self.trace_optical_design()
         if max(self.dsgError)< self.tolError:
             self.dsgSolved = True
-            #print(self.dsgError)
         else:
             if self.dsgError[2] > self.tolError:
                 if self.designType =='telecentric':
@@ -89,7 +88,6 @@ class OpDesign:
         usrSrcError=[]
         dsgPtoSrcError=[]
         dsgInfSrcError=[]
-        
         for rayIndex in range(5):
             #User ray source
             if isinstance(self.usrSrc,PointSource):
@@ -155,7 +153,9 @@ class OpDesign:
         #Perform optimization
         #rayIndex = 1
         x0 = self.optSys.SurfaceData[-2][0]
-        sptSrc,sptTrace = spot_diagram(self,noRays=1000)
+        #print(self.usrSrc.RayList)
+        #print(self.dsgSolved)
+        sptSrc,sptTrace = spot_diagram(self,noRays=100)
         #res= minimize(XYZ_image, x0,args=(self,rayIndex),method='Nelder-Mead')
         res= minimize(XYZ_image, x0,args=(self,sptSrc),method='Nelder-Mead')
         #Replace value
@@ -171,6 +171,7 @@ class OpDesign:
         fig, ax = plot_rayTrace(self.dsgPtoTrace,fig=fig,ax=ax, color='g')
         ax.set_xlabel('z[mm]')
         ax.set_ylabel('y[mm]')
+        ax.axis('equal')
 
     
 if __name__=='__main__':
@@ -185,7 +186,7 @@ if __name__=='__main__':
     syst1.plot_optical_system(clearSemDia)
     
     # Instantiate point source
-    pto1  = PointSource([0,0.9,0],635)
+    pto1  = PointSource([0,3,0],635)
     pto2  = InfinitySource(RaySource.calc_direcCos([+0.0,-0.4,1.0]), 635)
     
     design1  = OpDesign(pto1,syst1,aprRad=1.0,aprInd=1)
@@ -200,7 +201,7 @@ if __name__=='__main__':
     design1.plot_design(clearSemDia)
     pto1.print_report()
     #design2.plot_design(clearSemDia)
-    #pto2.print_report()
+    pto2.print_report()
     
     #Documentacion
     spot_diagram(design1,show=True)

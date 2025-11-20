@@ -95,7 +95,8 @@ class OpSysData:
         if surfType!='nan':
             assert surfType in self.surfaceTypes, 'Surface type [surfType] not supported'
  
-    def print_report(self):
+    #def print_report(self):
+    def __str__(self):
         headers = ['#','Distance','Curvature','Material','Type']
         counter = 0
         print("\nSURFACE LIST")
@@ -105,6 +106,7 @@ class OpSysData:
             print("{: 5d} ".format(counter)+
                   "{:12f} {:12f} {:>12} {:>12} ".format(*surface))
             counter += 1
+        return str('#####')
             
     def plot_optical_system(self,clearSemDia_usr=[]):
         if   len(clearSemDia_usr)== 1:
@@ -121,7 +123,8 @@ if __name__=='__main__':
     #Create system
     syst1 = OpSysData()
     print('\nDefault Optical system')
-    syst1.print_report()
+    #syst1.print_report()
+    print(syst1)
     
     syst1.change_surface(2,0,1.1,surfIndex=0)
     syst1.add_surface(2,1.0,2)
@@ -130,24 +133,28 @@ if __name__=='__main__':
     syst1.add_surface(3,1/3.0,'BK7')
     syst1.add_surface(4,1/4.0,1)
     print('\nOptical system data')
-    syst1.print_report()
+    #syst1.print_report()
+    print(syst1)
     
     #Test changeSurface
     syst1.change_surface(9,1/9,4,surfIndex=3)
     print('\nSurface 3 changed')
-    syst1.print_report()
+    #syst1.print_report()
+    print(syst1)
     
     #Test deleteSurface
     syst1.delete_surface(surfIndex=3)
     print('\nSurface 3 deleted')
-    syst1.print_report()
+    #syst1.print_report()
+    print(syst1)
     #Plot system
     syst1.plot_optical_system(clearSemDia_usr=[1.5])
     
     #Test invert surface
     syst1.invert_surface_order(0,5)
     print('\nSurfaces 0 to 5 inverted')
-    syst1.print_report()
+    #syst1.print_report()
+    print(syst1)
     #Plot system
     syst1.plot_optical_system(clearSemDia_usr=[1.5])
 
