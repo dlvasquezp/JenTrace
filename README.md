@@ -141,7 +141,6 @@ Variables: CapWords + short name
 ## Contributors
 David L. Vasquez
 
-S. M. Miftahul Islam
 
 ## Acknowledgements
 Prof. Yobani Mejia from Universidad Nacional de Colombia
