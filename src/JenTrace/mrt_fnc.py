@@ -154,7 +154,8 @@ def XYZ_image (x0,*arg):
     #replace surface distance
     surf_len = len(SurfaceData)
     surf_idx = (surf_len-2) 
-    arg[0].optSys.change_surface(dist,SurfaceData[surf_idx][1],SurfaceData[surf_idx][2],surfIndex=surf_idx)
+    #arg[0].optSys.change_surface(dist,SurfaceData[surf_idx][1],SurfaceData[surf_idx][2],surfIndex=surf_idx)
+    arg[0].optSys.SurfaceData[surf_idx][0]=dist
     
     #Make Raytrace
     #RayTrace  = trace(RayList,SurfaceData)
@@ -191,25 +192,28 @@ if __name__=='__main__':
     from JenTrace.ray_src import PointSource
     from JenTrace.opt_sys import OpSysData
     from JenTrace.opt_dsg import OpDesign
-    from JenTrace.plt_fnc import plot_system,plot_rayTrace 
+    #from JenTrace.plt_fnc import plot_system,plot_rayTrace 
 
-    import matplotlib.pyplot as plt
+    #import matplotlib.pyplot as plt
     
     pto1  = PointSource([0,1,0],635)
     syst1 = OpSysData()
     syst1.add_surface(2,0.05,1.7)
-    syst1.add_surface(10,-0.5,1.4)
-    print(syst1)
+    syst1.add_surface(-2,-0.05,1.4)
+    syst1.add_surface(10,0,1)
+    syst1.plot([1.5])
     #syst1.changeAperture(1,surfIndex = 1)
     
-    design1  = OpDesign(pto1,syst1,aprRad=1.0,aprInd=2)
+    design1  = OpDesign(pto1,syst1,aprRad=0.66,aprInd=3)
+    design1.plot()
     design1.autofocus()
-    
-    fig, ax = plt.subplots()
-    fig, ax = plot_system(design1, fig=fig, ax=ax)
-    fig, ax = plot_rayTrace(design1.raySrcTrace,fig=fig,ax=ax)
-    fig, ax = plot_rayTrace(design1.dsgPtoTrace,fig=fig,ax=ax)
-    fig, ax = plot_rayTrace(design1.dsgInfTrace,fig=fig,ax=ax)
+    #print(design1.optSys)
+    design1.plot()
+    #fig, ax = plt.subplots()
+    #fig, ax = plot_system(design1, fig=fig, ax=ax)
+    #fig, ax = plot_rayTrace(design1.raySrcTrace,fig=fig,ax=ax)
+    #fig, ax = plot_rayTrace(design1.dsgPtoTrace,fig=fig,ax=ax)
+    #fig, ax = plot_rayTrace(design1.dsgInfTrace,fig=fig,ax=ax)
     
     
     

@@ -111,12 +111,27 @@ class OpSysData:
         headers = ['#','Distance','Curvature','Material','Type', 'SemiDiameter','Parameters']
         print("\nSURFACE LIST")
         print("Class:" + self.__class__.__name__)
-        print("{: >5}{: >12}{: >12}{: >12}{: >12}{: >13}  {:12}".format(*headers))
+        print("{: >5}{: >12} {: >12} {: >12} {: >12}{: >13}  {:12}".format(*headers))
         for idx, surface in enumerate(self.SurfaceData):
+            row=[]
+            for q in range(3):
+                row.append(surface[q])
+                if surface[6][q]=='1':
+                    row.append('v')
+                else:
+                    row.append(' ')
+            row.append(surface[3])
+            row.append(surface[4])
+            #print(surface[6],row)
+                    
+            print("{: 5d}".format(idx)+
+                  "{:12.3f}{}{:12.3f}{}{:>12}{}{:>12}{:>13.2f}".format(*row)+
+                  "  {:12}".format(str(surface[5])))
+            '''    
             print("{: 5d}".format(idx)+
                   "{:12.3f}{:12.3f}{:>12}{:>12}{:>13.2f}".format(*surface[:5])+
-                  "  {:12}".format(str(surface[5]))
-                  )
+                  "  {:12}".format(str(surface[5])))
+            '''
         return str('#####')
     
     def change_clearSemDia(self,clearSemDia_usr:list[float]):
@@ -148,14 +163,14 @@ if __name__=='__main__':
     print('\nDefault Optical system')
     #syst1.print_report()
     print(syst1)
-    
+
     syst1.change_surface(2,0,1.1,surfIndex=0)
     syst1.add_surface(2,1.0,2)
     syst1.add_surface(2,1.0,2,surfType='paraxial',surfPara=[1,2,3,4,5])
-    syst1.add_surface(10,1/2.0,2)
-    syst1.add_surface(3,1/3.0,'N-BK7')
-    syst1.add_surface(4,1/4.0,1)
-    syst1.add_surface(4,1/4.0,1.5,surfPara=['test'])
+    syst1.add_surface(10,1/2.0,2,varProp='010')
+    syst1.add_surface(3,1/3.0,'N-BK7',varProp='010')
+    syst1.add_surface(4,1/4.0,1,varProp='110')
+    syst1.add_surface(4,1/4.0,1.5,surfPara=['test'],varProp='100')
     print('\nOptical system data')
     #syst1.print_report()
     print(syst1)

@@ -48,7 +48,7 @@ def spot_diagram(optDsg, noRays=1000, show=False, plotType ='posXYZ', surfIndex=
             #samSrcLM  =[[random.uniform(xlim[0],xlim[1]),(ylim[0]+ylim[1])/2] for _ in range(noRays)]
             #samSrcLM  =[[(xlim[0]+xlim[1])/2,random.uniform(ylim[0],ylim[1])] for _ in range(noRays)]
             
-            LMN     = RaySource.calc_direcCos([samSrcLM[0][0],samSrcLM[0][1],1])
+            LMN     = RaySource.calc_direcCos([samSrcLM[0][0],samSrcLM[0][1],1])#review [x,x,1]
             samSrc  = RaySource (samSrcXYZ,LMN,samSrcWvln)
             
             for LM in samSrcLM [1:]:

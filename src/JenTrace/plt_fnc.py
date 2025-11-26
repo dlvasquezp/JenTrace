@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 from numpy import pi
 
 
-def plot_system(optObj, fig=[], ax=[], clearSemDia=[]):
+def plot_system(optObj, fig=[], ax=[]):
     '''
     plot_system accets either OpSysData or OpDesign
     '''   
