@@ -58,7 +58,7 @@ class OpDesign:
     def change_aperture_index(self,aprInd):
         surf_len = len(self.optSys.SurfaceData)
         assert isinstance(aprInd,int),'Invalid aperture index (aprInd) data type'
-        assert aprInd > 0 and aprInd < surf_len, 'Invalid aperture index (aprInd) value'
+        assert aprInd > 0 and aprInd < (surf_len-1), 'Invalid aperture index (aprInd) value'
         self.aprInd=aprInd
     
     def initial_ray_estimation(self):
@@ -148,7 +148,7 @@ class OpDesign:
             if isinstance(self.usrSrc,InfinitySource):
                 # Calculate intial optimization position
                 d   = self.optSys.SurfaceData[0][0]
-                m   = InfinitySource.DirecCos
+                m   = self.usrSrc.DirecCos
                 x0  = [-d*m[0],-d*m[1]]
                 XYZ, rayError = self.propagate_ray (self.usrSrc   , rayIndex, x0)
                 self.usrSrc.change_XYZ(XYZ,rayIndex)
@@ -170,21 +170,16 @@ class OpDesign:
     def propagate_ray (self,ptoSrc,rayIndex,x0):
         
         if isinstance(ptoSrc,PointSource):
-            print(x0)
-            res = minimize(LMN_apertureStop, x0, args=(self,ptoSrc,rayIndex), method='Nelder-Mead', options={'xatol':self.tolError})
-            print(res)
+            res = minimize(LMN_apertureStop, x0, args=(self,ptoSrc,rayIndex), method='Nelder-Mead')
             # Get result
             rayError = res.fun
             x1  = res.x
             # If error is out of boundary, try brute algorithm near x1
             if (rayError > self.tolError):
-                print('----------------Brute')
                 rranges = (slice(x1[0]-0.05, x1[0]+0.05, 0.01), slice(x1[1]-0.05, x1[1]+0.05, 0.01))
                 resbrute = brute(LMN_apertureStop, rranges,args=(self,ptoSrc,rayIndex), full_output=True,finish=fmin)
                 rayError = resbrute[1]
                 x1  = resbrute[0]
-                #res = minimize(LMN_apertureStop, x0, args=(self,ptoSrc,rayIndex), method='SLSQP')
-                #print(res)
                 # Get result
                 rayError = res.fun
                 x1  = res.x
@@ -206,7 +201,6 @@ class OpDesign:
             return XYZ, rayError
             
     def autofocus(self):
-        # if aprIdx != lastSurface
         #Perform optimization
         x0 = self.optSys.SurfaceData[-2][0]
         sptSrc,sptTrace = spot_diagram(self,noRays=100)

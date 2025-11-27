@@ -154,7 +154,7 @@ if __name__ == '__main__':
     syst1.add_surface   (5     ,0         ,1      )
     #syst1.changeAperture(1,surfIndex=2)
     clearSemDia=[1,5.0,5.0,5.0,5.0,1]
-    syst1.plot_optical_system(clearSemDia)
+    syst1.plot(clearSemDia)
     
     # Instantiate point source
     pto1  = PointSource([4,4,0],635)
@@ -166,14 +166,14 @@ if __name__ == '__main__':
     design1.autofocus()
     
     # plot design
-    design1.plot_design(clearSemDia)
+    design1.plot()
     samSrc1,samTrace1 = spot_diagram(design1,show=True)
     
     # Instantiate infinity source
     pto2    = InfinitySource(RaySource.calc_direcCos([+0.0,-0.4,1.0]), 635)
-    design2 = OpDesign(pto2, syst1)
+    design2 = OpDesign(pto2, syst1, aprInd=4)
     design2.autofocus()
-    design2.plot_design(clearSemDia)
+    design2.plot()
     samSrc2,samTrace2 = spot_diagram(design2,show=True)
     
     print_report(samTrace2)

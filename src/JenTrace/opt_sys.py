@@ -156,6 +156,27 @@ class OpSysData:
         fig, ax = plt.subplots()
         print(self)
         plot_system(self,fig=fig,ax=ax)
+        
+    def get_varValues(self):
+        x0=[]
+        for _ , surface in enumerate(self.SurfaceData):
+            for q in range(3):
+                if surface[6][q]=='1':
+                    x0.append(surface[q])
+        return x0
+    
+    def set_varValues(self, x0):
+        varValues = self.get_varValues()
+        assert len(x0)==len(varValues), 'x0 does not match the number of variables. # of variables:{}, x0 length:{}'.format(len(varValues),len(x0))
+        assert all([isinstance(element,(int,float)) for element in x0]), 'Wrong type of data in x0: {}'.format(x0)
+        
+        idxX0 = int(0)
+        for idx , surface in enumerate(self.SurfaceData):
+            for q in range(3):
+                if surface[6][q]=='1':
+                    self.SurfaceData[idx][q]=x0[idxX0]
+                    idxX0 += int(1)
+        return 0
                
 if __name__=='__main__':
     #Create system
@@ -212,6 +233,14 @@ if __name__=='__main__':
     try:
         syst1.plot(clearSemDia_usr=[3,5,3,2,4,1.5,2,2,3])
     except Exception as e: print(e)
+    
+    #Test get values for optimization
+    print(syst1)
+    x0 = syst1.get_varValues()
+    print(x0)
+    syst1.set_varValues([1.111,2.222,3.333,4.444])
+    print(syst1)
+    syst1.plot()
     
 
     

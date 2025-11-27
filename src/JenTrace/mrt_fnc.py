@@ -129,7 +129,7 @@ def ap_error_calc(RayTrace,ApertureRadio,indexRay,ApertureIndex):
     return error
     
 
-def XYZ_image (x0,*arg):
+def XYZ_image (x0:float,*arg):
     '''
     Merit function to calculate the distance from a ray and the last 
     surface (image) origin [0,0,0]. If the point source is in the optical axis, 
@@ -174,16 +174,48 @@ def XYZ_image (x0,*arg):
     
     error = mrs
     
+    return error
+
+def merit_wizard (x0:list,*arg):
     '''
-    #Calculate error
-    error = (abs(RayTrace[indexRay, 7 ,-1])
-            +abs(RayTrace[indexRay, 8 ,-1])
-            +abs(RayTrace[indexRay, 9 ,-1]))
+    Merit wizard to generalize the construction of merit functions
+    x0:   (list[floats]) variable values
+    *arg: (list) [0] optical design object,
+                 [1] list of merit functions
     
-    error = (abs(RayTrace[0, 7 ,-1] - RayTrace[indexRay, 7 ,-1])
-            +abs(RayTrace[0, 8 ,-1] - RayTrace[indexRay, 8 ,-1])
-            +abs(RayTrace[0, 9 ,-1] - RayTrace[indexRay, 9 ,-1]))
+    
     '''
+    #rename values
+    dist        = x0[0] 
+    #RayList     = arg[0].dsgPtoSrc.RayList
+    #RayList     = arg[0].usrSrc.RayList
+    SurfaceData = arg[0].optSys.SurfaceData
+    #indexRay    = arg[1]
+    sptSrc      = arg[1]
+    
+    #replace surface distance
+    surf_len = len(SurfaceData)
+    surf_idx = (surf_len-2) 
+    #arg[0].optSys.change_surface(dist,SurfaceData[surf_idx][1],SurfaceData[surf_idx][2],surfIndex=surf_idx)
+    arg[0].optSys.SurfaceData[surf_idx][0]=dist
+    
+    #Make Raytrace
+    #RayTrace  = trace(RayList,SurfaceData)
+    RayTrace  = trace(sptSrc.RayList,SurfaceData)
+    
+    #Fist moment of inertia
+    xCoor     = RayTrace[:,8,-1]
+    yCoor     = RayTrace[:,9,-1]
+    N         = len(xCoor)
+    centroidX = sum(xCoor) / N 
+    centroidY = sum(yCoor) / N
+    
+    #Root mean square radius
+    ms =np.sum(np.power(xCoor-centroidX,2)+np.power(yCoor-centroidY,2))
+    mrs=np.sqrt(ms)
+    
+    error = mrs
+    
     return error
 
 
@@ -199,12 +231,12 @@ if __name__=='__main__':
     pto1  = PointSource([0,1,0],635)
     syst1 = OpSysData()
     syst1.add_surface(2,0.05,1.7)
-    syst1.add_surface(-2,-0.05,1.4)
-    syst1.add_surface(10,0,1)
+    syst1.add_surface(-2,-0.5,1.4)
+    #syst1.add_surface(10,0,1)
     syst1.plot([1.5])
     #syst1.changeAperture(1,surfIndex = 1)
     
-    design1  = OpDesign(pto1,syst1,aprRad=0.66,aprInd=3)
+    design1  = OpDesign(pto1,syst1,aprRad=0.66,aprInd=2)
     design1.plot()
     design1.autofocus()
     #print(design1.optSys)
