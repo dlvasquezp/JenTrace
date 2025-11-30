@@ -176,36 +176,63 @@ def XYZ_image (x0:float,*arg):
     
     return error
 
-def merit_wizard (x0:list,*arg):
+def score_function (x0:list,*arg) -> float:
     '''
     Merit wizard to generalize the construction of merit functions
     x0:   (list[floats]) variable values
     *arg: (list) [0] optical design object,
-                 [1] list of merit functions
+                 [1] list of ray parameters,
+                 [2] list of error functions,
+                 [3] list of function parameters,
+                 [4] List of weights
     
+    '''
+    #Rename arguments
+    opticalDesign  = arg[0]
+    raysParam      = arg[1]
+    errorFun       = arg[2]
+    funParam       = arg[3]
+    weights        = arg[4]
+    
+    #Replace x0 in optical design
+    opticalDesign.optSys.set_varValues(x0)
+    opticalDesign.solve_dsg()
+    
+    #Generate RaySources
+    raySourceList=[]
+    for ray in raysParam:
+        raySourceList.append(opticalDesign.calcRaySource(ray))
+        
+    #Make Raytrace
+    rayTraceList = []
+    for source in raySourceList:
+        rayTraceList.append(trace(source.RayList,opticalDesign.SurfaceData))
+        
+    #Evaluate error functions
+    errorList = []
+    for fun, rayTrace, param , w in zip(errorFun, rayTraceList, funParam,weights):
+        errorList.append(fun(rayTrace)*w)
+    
+    error = np.sum(errorList)
+    
+    return error
+
+def spotSqrt (RayTrace,*arg)->[float]:
+    '''
+    Merit function to calculate the mean sqrt of the Raytrace in the specified surface.
+    
+    RayTrace:   (list[float]) distance
+    *arg: (list) [surf_idx]
+    
+    # surf_idx:[int] -> Surface index where the mean sqrt value of the spot is calculated
     
     '''
     #rename values
-    dist        = x0[0] 
-    #RayList     = arg[0].dsgPtoSrc.RayList
-    #RayList     = arg[0].usrSrc.RayList
-    SurfaceData = arg[0].optSys.SurfaceData
-    #indexRay    = arg[1]
-    sptSrc      = arg[1]
-    
-    #replace surface distance
-    surf_len = len(SurfaceData)
-    surf_idx = (surf_len-2) 
-    #arg[0].optSys.change_surface(dist,SurfaceData[surf_idx][1],SurfaceData[surf_idx][2],surfIndex=surf_idx)
-    arg[0].optSys.SurfaceData[surf_idx][0]=dist
-    
-    #Make Raytrace
-    #RayTrace  = trace(RayList,SurfaceData)
-    RayTrace  = trace(sptSrc.RayList,SurfaceData)
+    surf_idx      = arg[0]
     
     #Fist moment of inertia
-    xCoor     = RayTrace[:,8,-1]
-    yCoor     = RayTrace[:,9,-1]
+    xCoor     = RayTrace[:,8,surf_idx]
+    yCoor     = RayTrace[:,9,surf_idx]
     N         = len(xCoor)
     centroidX = sum(xCoor) / N 
     centroidY = sum(yCoor) / N

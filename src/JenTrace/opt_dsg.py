@@ -32,7 +32,9 @@ class OpDesign:
         self.usrSrc  = usrSrc
         self.optSys  = optSys
         self.aprRad  = 1.0 
-        self.aprInd  = 1
+        self.aprInd  = int(1)
+        self.pupRad  = 1.0
+        self.pupPos  = 1.0
         self.designType = systemType
         #Assign aperture attributes
         self.change_aperture_radius(aprRad)
@@ -112,6 +114,7 @@ class OpDesign:
         self.trace_optical_design()
         if max(self.dsgError)< self.tolError:
             self.dsgSolved = True
+            self.calculate_entrance_pupil()
         else:
             if self.dsgError[2] > self.tolError:
                 if self.designType =='telecentric':
@@ -220,6 +223,36 @@ class OpDesign:
         ax.set_xlabel('z[mm]')
         ax.set_ylabel('y[mm]')
         ax.axis('equal')
+        
+    def calculate_entrance_pupil(self):
+        if self.dsgSolved:
+            #Find pupil Z position
+            chiefRay = self.usrSrc.RayList[0]
+            chiefRayXYZ = np.array(chiefRay[0])
+            chiefRayLMN = np.array(chiefRay[1])
+            #Find chiefRay optical axis intersection
+            fun = lambda z: np.sum(np.power(chiefRayXYZ+np.multiply(chiefRayLMN, z/chiefRayLMN[2]),2)[0:2])
+            x0 = [self.optSys.SurfaceData[0][0]]
+            res = minimize(fun, x0, method='Nelder-Mead')
+            pupilZ = res.x
+            self.pupPos = pupilZ
+            
+            #Find mean pupil radius
+            pupilSize=[]
+            for q in range(1,5):
+                marginalRay= self.usrSrc.RayList[q]
+                marginalRayXYZ = np.array(marginalRay[0])
+                marginalRayLMN = np.array(marginalRay[1])
+                #Propagate marginal rays to the entrance pupil
+                pupilRand = marginalRayXYZ + np.multiply(marginalRayLMN,pupilZ/marginalRayLMN[2])
+                pupilSize.append(pupilRand[0:2])
+            pupilRadius = np.mean([pupilSize[0][1],-pupilSize[1][1],pupilSize[2][0],-pupilSize[3][0]])
+            self.pupRad = pupilRadius
+                                
+            
+            
+            
+      
 
     
 if __name__=='__main__':
@@ -236,12 +269,12 @@ if __name__=='__main__':
     
     # Point source test
     pto1  = PointSource([0,3,0],635)
-    design1  = OpDesign(pto1,syst1,aprRad=0.1,aprInd=3)
+    design1  = OpDesign(pto1,syst1,aprRad=2,aprInd=3)
     design1.plot()
     design1.autofocus() 
     design1.plot()
     
-    
+    #design1.calculate_ray_source()
     '''
     pto2  = InfinitySource(RaySource.calc_direcCos([+0.0,-0.4,1.0]), 635)
     

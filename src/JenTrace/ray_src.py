@@ -48,7 +48,7 @@ class RaySource:
         if wvln !='nan':
             assert isinstance(wvln,(int,float)),'Invalid wavelength'
             
-    def print_report(self):
+    def __str__(self):
         headers = ['#','XPos','YPos','ZPos','XCosDir','YCosDir','ZCosDir','Wavelength']
         counter = 0
         print("\nRAY LIST")
@@ -60,6 +60,7 @@ class RaySource:
                   "{:12f} {:12f} {:12f} ".format(*ray[1])+
                   "{:12f} ".format( ray[2]))
             counter += 1
+        return str('#####')
 
     
     @staticmethod        
