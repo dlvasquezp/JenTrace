@@ -22,13 +22,14 @@ import random
 
 class OpDesign:
     '''
-    dsn_src: point source 
+    dsn_src: point source / infinity source 
     opt_sys: optical system
     
     Falta: Documentacion
     '''
     def __init__(self,usrSrc,optSys,aprRad=1.0,aprInd=1,systemType='default'):
         #Attributes
+        assert isinstance(usrSrc,(PointSource,InfinitySource)), 'Ray source should be either PointSource or InfinitSource'
         self.usrSrc  = usrSrc
         self.optSys  = optSys
         self.aprRad  = 1.0 
@@ -64,49 +65,64 @@ class OpDesign:
         self.aprInd=aprInd
     
     def initial_ray_estimation(self):
-        random.seed(41125)
-        if isinstance(self.usrSrc,PointSource):
-            usrSrcXYZ = self.usrSrc.Position
-            samSrcWvln= self.usrSrc.Wavelength
-            
-            #Define directions from the point source to the first surface rand
-            surf1Position = self.optSys.SurfaceData[0][0]
-            surf1SemiDia  = self.optSys.SurfaceData[0][4]
-
-            surf1Ya = [0,+surf1SemiDia,surf1Position]
-            surf1Yb = [0,-surf1SemiDia,surf1Position]
-            surf1Xa = [+surf1SemiDia,0,surf1Position]
-            surf1Xb = [-surf1SemiDia,0,surf1Position]
-            
-            xRad = [np.array(surf1Xa)-np.array(usrSrcXYZ),np.array(surf1Xb)-np.array(usrSrcXYZ)]
-            yRad = [np.array(surf1Ya)-np.array(usrSrcXYZ),np.array(surf1Yb)-np.array(usrSrcXYZ)]
-            initLMNx  =[[random.uniform(xRad[0][0],xRad[1][0]),random.uniform(xRad[0][1],xRad[1][1]),random.uniform(xRad[0][2],xRad[1][2])] for _ in range(5)]
-            initLMNy  =[[random.uniform(yRad[0][0],yRad[1][0]),random.uniform(yRad[0][1],yRad[1][1]),random.uniform(yRad[0][2],yRad[1][2])] for _ in range(5)]
-            initLMN   = [*initLMNx, *initLMNy]
-            LMNlist = [RaySource.calc_direcCos(ray) for ray in initLMN]
-            
-            # Create ray source
-            samSrc  = RaySource (usrSrcXYZ,LMNlist[0],samSrcWvln)
-            for LMN in LMNlist [1:]:
-                samSrc.new_ray(usrSrcXYZ,LMN,samSrcWvln)
-                
-            # Make ray trace
-            initRayTrace = trace(samSrc.RayList, self.optSys.SurfaceData)
-
-            #if isinstance(self.usrSrc,InfinitySource):
-            #    d   = self.optSys.SurfaceData[0][0]
-            #    m   = self.usrSrc.DirecCos
-            
-            return initRayTrace 
-        else:
-            return False
-            #xlim = [xRad.min(),xRad.max()]
-            #ylim = [yRad.min(),yRad.max()]
-            #print(xRad, yRad)#, xlim, ylim)
-            #print(initLMN)
-            #print(LMN)
-
+        samSrcWvln= self.usrSrc.Wavelength
         
+        #Define directions from the point source to the first surface rand
+        surf1Position = self.optSys.SurfaceData[0][0]
+        surf1SemiDia  = self.optSys.SurfaceData[0][4]
+        
+        noRings=9
+        centers=[]
+        spacing= 1/(noRings+2)
+        for q in range(-noRings, noRings + 1):
+            r1 = max(-noRings, -q - noRings)
+            r2 = min(noRings, -q + noRings)
+            for r in range(r1, r2 + 1):
+                # axial to cartesian (pointy-top orientation)
+                x = spacing * (np.sqrt(3) * q + np.sqrt(3)/2 * r)
+                y = spacing * (3/2 * r)
+                centers.append([x, y])  
+        centers=np.array(centers)
+        
+        mask = np.sqrt(centers[:, 0]**2 + centers[:, 1]**2) <= 1
+        pts=centers[mask]
+        pts = np.multiply(pts,surf1SemiDia)
+        
+        raysPupXYZ = []
+        for px, py in pts:
+            raysPupXYZ.append(np.array([px,py,surf1Position]))
+        
+        if isinstance(self.usrSrc,PointSource):
+            XYZ= self.usrSrc.Position 
+
+            raysImg2Pup = []
+            for ray in raysPupXYZ:
+                raysImg2Pup.append(ray-XYZ)
+            
+            LMN     = RaySource.calc_direcCos(raysImg2Pup[0])
+            samSrc  = RaySource (XYZ,LMN,samSrcWvln)
+            
+            for ray in raysImg2Pup [1:]:
+                LMN     = RaySource.calc_direcCos(ray)
+                samSrc.new_ray(XYZ,LMN,samSrcWvln)
+            
+        if isinstance(self.usrSrc,InfinitySource): 
+            LMN= self.usrSrc.DirecCos 
+
+            raysImg2Pup = []
+            for ray in raysPupXYZ:
+                raysImg2Pup.append(list(ray-(np.multiply(LMN,surf1Position/LMN[2]))))
+            
+            samSrc  = RaySource (raysImg2Pup[0],LMN,samSrcWvln)
+            
+            for XYZ in raysImg2Pup [1:]:
+                samSrc.new_ray(XYZ,LMN,samSrcWvln)
+            
+        # Make ray trace
+        initRayTrace = trace(samSrc.RayList, self.optSys.SurfaceData)
+
+        return initRayTrace 
+
         
     def solve_dsg(self):
         self.dsgSolved = False
@@ -143,8 +159,9 @@ class OpDesign:
             #User ray source
             if isinstance(self.usrSrc,PointSource):
                 # Calculate initial optimization direction
-                cosDirZ = self.initRayTrace[0,21,0]
-                x0  = [self.initRayTrace[0,19,0]/cosDirZ,self.initRayTrace[0,20,0]/cosDirZ]
+                nearIdx = self.nearest_aperture_ray(rayIndex)
+                cosDirZ = self.initRayTrace[nearIdx,21,0]
+                x0  = [self.initRayTrace[nearIdx,19,0]/cosDirZ,self.initRayTrace[nearIdx,20,0]/cosDirZ]
                 LMN, rayError = self.propagate_ray (self.usrSrc   , rayIndex, x0)
                 self.usrSrc.change_LMN(LMN,rayIndex)
                 usrSrcError.append(rayError)
@@ -168,6 +185,31 @@ class OpDesign:
         self.dsgError.append(sum(usrSrcError))
         self.dsgError.append(sum(dsgPtoSrcError))
         self.dsgError.append(sum(dsgInfSrcError))
+        
+    def nearest_aperture_ray(self,rayIndex)->int:
+        xPosList = self.initRayTrace[:,8,self.aprInd]
+        yPosList = self.initRayTrace[:,9,self.aprInd]
+        
+        if rayIndex == 0:
+            nearIdx = np.argmin((np.power(xPosList,2)+np.power(yPosList,2)))
+        
+        if rayIndex == 1:
+            distDif = np.array(yPosList)-self.aprRad
+            nearIdx = np.argmin((np.power(xPosList,2)+np.power(distDif,2)))
+
+        if rayIndex == 2:
+            distDif = np.array(yPosList)+self.aprRad
+            nearIdx = np.argmin((np.power(xPosList,2)+np.power(distDif,2)))
+            
+        if rayIndex == 3:
+            distDif = np.array(xPosList)-self.aprRad
+            nearIdx = np.argmin((np.power(distDif,2)+np.power(yPosList,2)))
+            
+        if rayIndex == 4:
+            distDif = np.array(xPosList)+self.aprRad
+            nearIdx = np.argmin((np.power(distDif,2)+np.power(yPosList,2)))
+        
+        return nearIdx
             
     
     def propagate_ray (self,ptoSrc,rayIndex,x0):
@@ -179,13 +221,15 @@ class OpDesign:
             x1  = res.x
             # If error is out of boundary, try brute algorithm near x1
             if (rayError > self.tolError):
+                print('brute PS, prev. error {}'.format(rayError))
                 rranges = (slice(x1[0]-0.05, x1[0]+0.05, 0.01), slice(x1[1]-0.05, x1[1]+0.05, 0.01))
                 resbrute = brute(LMN_apertureStop, rranges,args=(self,ptoSrc,rayIndex), full_output=True,finish=fmin)
                 rayError = resbrute[1]
                 x1  = resbrute[0]
                 # Get result
-                rayError = res.fun
-                x1  = res.x
+                #rayError = res.fun
+                #x1  = res.x
+                print(rayError)
             LMN = RaySource.calc_direcCos([x1[0],x1[1],1])
             return LMN, rayError
         
@@ -196,10 +240,14 @@ class OpDesign:
             x1  = res.x
             # If error is out of boundary, try brute algorithm near x1
             if (rayError > self.tolError):
+                print('brute IS, prev. error {}'.format(rayError))
                 rranges = (slice(x1[0]-0.05, x1[0]+0.05, 0.01), slice(x1[1]-0.05, x1[1]+0.05, 0.01))
                 resbrute = brute(XYZ_apertureStop, rranges,args=(self,ptoSrc,rayIndex), full_output=True,finish=fmin)
                 rayError = resbrute[1]
                 x1  = resbrute[0]
+                # Get result 
+                #rayError = res.fun
+                print(rayError)
             XYZ = [x1[0],x1[1],0]
             return XYZ, rayError
             
@@ -235,7 +283,7 @@ class OpDesign:
             x0 = [self.optSys.SurfaceData[0][0]]
             res = minimize(fun, x0, method='Nelder-Mead')
             pupilZ = res.x
-            self.pupPos = pupilZ
+            self.pupPos = pupilZ[0]
             
             #Find mean pupil radius
             pupilSize=[]
@@ -249,10 +297,6 @@ class OpDesign:
             pupilRadius = np.mean([pupilSize[0][1],-pupilSize[1][1],pupilSize[2][0],-pupilSize[3][0]])
             self.pupRad = pupilRadius
                                 
-            
-            
-            
-      
 
     
 if __name__=='__main__':
@@ -269,7 +313,7 @@ if __name__=='__main__':
     
     # Point source test
     pto1  = PointSource([0,3,0],635)
-    design1  = OpDesign(pto1,syst1,aprRad=2,aprInd=3)
+    design1  = OpDesign(pto1,syst1,aprRad=1.0,aprInd=3)
     design1.plot()
     design1.autofocus() 
     design1.plot()

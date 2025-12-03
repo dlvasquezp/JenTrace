@@ -13,6 +13,7 @@ except ModuleNotFoundError:
     sys.path.insert(0,os.path.dirname(os.getcwd()))
     
 from JenTrace.ray_trc import trace
+from JenTrace.spt_dgm import ray_pattern, spot_diagram
 import numpy as np
 
 def LMN_apertureStop (x0,*arg):
@@ -195,23 +196,29 @@ def score_function (x0:list,*arg) -> float:
     weights        = arg[4]
     
     #Replace x0 in optical design
+    print('########## Merit x0: {}#####'.format(x0))
+    print(opticalDesign.aprInd,opticalDesign.aprRad)
+    print(opticalDesign.optSys)
     opticalDesign.optSys.set_varValues(x0)
+    print(opticalDesign.optSys)
     opticalDesign.solve_dsg()
-    
+    print('x0:', x0)
     #Generate RaySources
     raySourceList=[]
-    for ray in raysParam:
-        raySourceList.append(opticalDesign.calcRaySource(ray))
-        
+    for param in raysParam:
+        #print([opticalDesign,*param])
+        raySourceList.append(ray_pattern(opticalDesign,*param))
+    #print(raySourceList[0])    
     #Make Raytrace
     rayTraceList = []
     for source in raySourceList:
-        rayTraceList.append(trace(source.RayList,opticalDesign.SurfaceData))
+        rayTraceList.append(trace(source.RayList,opticalDesign.optSys.SurfaceData))
         
     #Evaluate error functions
     errorList = []
     for fun, rayTrace, param , w in zip(errorFun, rayTraceList, funParam,weights):
-        errorList.append(fun(rayTrace)*w)
+        #print(rayTrace)
+        errorList.append(fun(rayTrace,*funParam)*w)
     
     error = np.sum(errorList)
     
@@ -248,31 +255,86 @@ def spotSqrt (RayTrace,*arg)->[float]:
 
 
 if __name__=='__main__':
+    import time
+    from scipy.optimize import minimize
     from JenTrace.ray_src import PointSource
     from JenTrace.opt_sys import OpSysData
     from JenTrace.opt_dsg import OpDesign
     #from JenTrace.plt_fnc import plot_system,plot_rayTrace 
-
+    '''
     #import matplotlib.pyplot as plt
-    
+    print('######### Dsg 1 ##########')
     pto1  = PointSource([0,1,0],635)
     syst1 = OpSysData()
-    syst1.add_surface(2,0.05,1.7)
-    syst1.add_surface(-2,-0.5,1.4)
+    syst1.add_surface(2,0.05,1.7,varProp='100')
+    syst1.add_surface(11,-0.05,1.4)
     #syst1.add_surface(10,0,1)
-    syst1.plot([1.5])
+    syst1.plot([3])
     #syst1.changeAperture(1,surfIndex = 1)
     
-    design1  = OpDesign(pto1,syst1,aprRad=0.66,aprInd=2)
+    design1  = OpDesign(pto1,syst1,aprRad=1,aprInd=2)
     design1.plot()
-    design1.autofocus()
+    #design1.autofocus()
     #print(design1.optSys)
-    design1.plot()
+    #design1.plot()
+    #spot_diagram(design1,noRings=9,show=True)
+    '''
+    '''
     #fig, ax = plt.subplots()
     #fig, ax = plot_system(design1, fig=fig, ax=ax)
     #fig, ax = plot_rayTrace(design1.raySrcTrace,fig=fig,ax=ax)
     #fig, ax = plot_rayTrace(design1.dsgPtoTrace,fig=fig,ax=ax)
     #fig, ax = plot_rayTrace(design1.dsgInfTrace,fig=fig,ax=ax)
+    print('######### Dsg 2 ##########')
+    pto2  = PointSource([0,1,0],635)
+    syst2 = OpSysData()
+    syst2.add_surface(2.2,0.05,1.7,varProp='100')
+    syst2.add_surface(11,-0.05,1.4)
+    #syst1.add_surface(10,0,1)
+    syst2.plot([3])
+    design2  = OpDesign(pto2,syst2,aprRad=1,aprInd=2)
+    design2.plot()
+    
+    #print_report(design2.initRayTrace, index=0)
+    #print(design2.usrSrc)
+    #print(design2.dsgPtoSrc)
+    #print(design2.dsgInfSrc)
+    '''
+    
+    print('######### Dsg 3 ##########')
+    pto3  = PointSource([0,1,0],635)
+    syst3 = OpSysData()
+    syst3.add_surface(3,0.05,1.7,varProp='110')
+    syst3.add_surface(11,-0.05,1.4)
+    syst3.add_surface(10,1/2,1)
+    syst3.plot([3])
+    #syst1.changeAperture(1,surfIndex = 1)
+    
+    
+    #Merit function
+    #opticalDesign  = arg[0]
+    #raysParam      = arg[1]
+    #errorFun       = arg[2]
+    #funParam       = arg[3]
+    #weights        = arg[4]
+    print('-------------------->>>>>>>>>>>>>')
+    start = time.time()
+    design3  = OpDesign(pto3,syst3,aprRad=1,aprInd=2)
+    args = (design3,
+           [['hexapolar',9]],
+           [spotSqrt],
+           [[-1]],
+           [1])
+    x0 = design3.optSys.get_varValues()
+    res = minimize(score_function, x0, args=args, method='Nelder-Mead')
+    design3.solve_dsg()
+    print(res)  
+    design3.plot()
+    spot_diagram(design3,noRings=9,show=True)
+    end = time.time()
+    print('-------------------->>>>>>>>>>>>>',end - start)
+    
+    
     
     
     

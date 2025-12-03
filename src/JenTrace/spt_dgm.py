@@ -15,7 +15,7 @@ import matplotlib.pyplot as plt
 from JenTrace.ray_trc import trace,print_report
 from JenTrace.ray_src import RaySource,PointSource,InfinitySource
 
-def spot_diagram(optDsg, noRays=1000, show=False, plotType ='posXYZ', surfIndex=-1, color='b'):
+def spot_diagram(optDsg, noRings=9, noRays=1000, show=False, plotType ='posXYZ', surfIndex=-1, color='b'):
     '''
     spot_diagram creates a bunch of rays from the source and porpagate it throw the system. 
     The rays are filtereed (and discarted) using the ray position in the aperture plane.
@@ -32,47 +32,10 @@ def spot_diagram(optDsg, noRays=1000, show=False, plotType ='posXYZ', surfIndex=
     
     if optDsg.dsgSolved == True:
         optSys = optDsg.optSys
-        random.seed(102629122021)
-        if isinstance(optDsg.usrSrc,PointSource):
-            usrSrc = optDsg.usrSrc
-            xRad = np.array([usrSrc.RayList[rayIndex][1][0]for rayIndex in range(1,5)])
-            yRad = np.array([usrSrc.RayList[rayIndex][1][1]for rayIndex in range(1,5)])
-            xlim = [xRad.min(),xRad.max()]
-            ylim = [yRad.min(),yRad.max()]
-            
-            # Instantiate sampling (sam) source
-            samSrcXYZ = usrSrc.Position
-            samSrcWvln= usrSrc.Wavelength
-            # rays distribution
-            samSrcLM  =[[random.uniform(xlim[0],xlim[1]),random.uniform(ylim[0],ylim[1])] for _ in range(noRays)]
-            #samSrcLM  =[[random.uniform(xlim[0],xlim[1]),(ylim[0]+ylim[1])/2] for _ in range(noRays)]
-            #samSrcLM  =[[(xlim[0]+xlim[1])/2,random.uniform(ylim[0],ylim[1])] for _ in range(noRays)]
-            
-            LMN     = RaySource.calc_direcCos([samSrcLM[0][0],samSrcLM[0][1],1])#review [x,x,1]
-            samSrc  = RaySource (samSrcXYZ,LMN,samSrcWvln)
-            
-            for LM in samSrcLM [1:]:
-                LMN     = RaySource.calc_direcCos([LM[0],LM[1],1])
-                samSrc.new_ray(samSrcXYZ,LMN,samSrcWvln)
-                
-        if isinstance(optDsg.usrSrc,InfinitySource): 
-            usrSrc = optDsg.usrSrc
-            xRad = np.array([usrSrc.RayList[rayIndex][0][0]for rayIndex in range(1,5)])
-            yRad = np.array([usrSrc.RayList[rayIndex][0][1]for rayIndex in range(1,5)])
-            xlim = [xRad.min(),xRad.max()]
-            ylim = [yRad.min(),yRad.max()]
-            
-            # Instantiate sampling (sam) source
-            samSrcLMN = usrSrc.DirecCos
-            samSrcWvln= usrSrc.Wavelength
-            # rays distribution
-            samSrcXYZ =[[random.uniform(xlim[0],xlim[1]),random.uniform(ylim[0],ylim[1]),0] for q in range(noRays)]
-            
-            samSrc  = RaySource (samSrcXYZ[0],samSrcLMN,samSrcWvln)
-            
-            for XYZ in samSrcXYZ [1:]:
-                samSrc.new_ray(XYZ,samSrcLMN,samSrcWvln)
-            
+        
+        # Generate ray source with ray pattern
+        samSrc=ray_pattern(optDsg,'hexapolar', noRings=noRings)
+             
         # Make  Trace
         samTrace = trace(samSrc.RayList,optSys.SurfaceData)
         
@@ -140,11 +103,86 @@ def spot_diagram(optDsg, noRays=1000, show=False, plotType ='posXYZ', surfIndex=
         
         
         return samSrc,sptTrace
+    
+def ray_pattern(optDsg, pattern:str, noRings:int, noRays=100, show=False, color='b'):
+    pupilRad = optDsg.pupRad
+    pupilPos = optDsg.pupPos
+    usrSrcWvln= optDsg.usrSrc.Wavelength
+    centers = []
+    
+    if pattern == 'hexapolar':
+        spacing= 1/(noRings+2)
+        for q in range(-noRings, noRings + 1):
+            r1 = max(-noRings, -q - noRings)
+            r2 = min(noRings, -q + noRings)
+            for r in range(r1, r2 + 1):
+                # axial to cartesian (pointy-top orientation)
+                x = spacing * (np.sqrt(3) * q + np.sqrt(3)/2 * r)
+                y = spacing * (3/2 * r)
+                centers.append([x, y])  
+        centers=np.array(centers)
+    
+    if pattern == 'sagital':
+        x = np.linspace(-1,1,(noRings*2+1))
+        y = np.zeros(len(x))
+        centers=[[q,w] for q,w in zip (x, y)]  
+        centers=np.array(centers)
+        
+    if pattern == 'tangential':
+        y = np.linspace(-1,1,(noRings*2+1))
+        x = np.zeros(len(y))
+        centers=[[q,w] for q,w in zip (x, y)]  
+        centers=np.array(centers)
+        
+    mask = np.sqrt(centers[:, 0]**2 + centers[:, 1]**2) <= 1
+    pts=centers[mask]
+    if show:
+        fig, ax = plt.subplots(figsize=(6, 6))
+        ax.scatter(pts[:, 0], pts[:, 1], s=40)
+        circle = plt.Circle((0, 0), 1, fill=False)
+        ax.add_patch(circle)
+    
+    #Resize pupil radious from 1 to design value
+    pts = np.multiply(pts,pupilRad)
+    
+    raysPupXYZ = []
+    for px, py in pts:
+        raysPupXYZ.append(np.array([px,py,pupilPos]))
+    
+    if isinstance(optDsg.usrSrc,PointSource):
+        XYZ= optDsg.usrSrc.Position 
+
+        raysImg2Pup = []
+        for ray in raysPupXYZ:
+            raysImg2Pup.append(ray-XYZ)
+    
+        LMN     = RaySource.calc_direcCos(raysImg2Pup[0])
+        samSrc  = RaySource (XYZ,LMN,usrSrcWvln)
+    
+        for ray in raysImg2Pup [1:]:
+            LMN     = RaySource.calc_direcCos(ray)
+            samSrc.new_ray(XYZ,LMN,usrSrcWvln)
+    
+    if isinstance(optDsg.usrSrc,InfinitySource): 
+        LMN= optDsg.usrSrc.DirecCos 
+
+        raysImg2Pup = []
+        for ray in raysPupXYZ:
+            raysImg2Pup.append(list(ray-(np.multiply(LMN,pupilPos/LMN[2]))))
+        
+        samSrc  = RaySource (raysImg2Pup[0],LMN,usrSrcWvln)
+        
+        for XYZ in raysImg2Pup [1:]:
+            samSrc.new_ray(XYZ,LMN,usrSrcWvln)
+    
+    return samSrc
         
 if __name__ == '__main__':
+    import time
     from opt_sys import OpSysData
     from opt_dsg import OpDesign
     
+    start = time.time()
     # Instantiate optical system
     syst1 = OpSysData()
     syst1.change_surface(30     ,0         ,1      ,surfIndex=0) 
@@ -180,3 +218,9 @@ if __name__ == '__main__':
     
     #print_report(samTrace2, 'prop',index=8)
     #print_report(samTrace2, 'prop',index=9)
+    t1=ray_pattern(design1,'hexapolar', noRings=5)
+    t2=ray_pattern(design1,'sagital', noRings=9)
+    t3=ray_pattern(design2,'tangential', noRings=9)
+    end = time.time()
+    print('-------------------->>>>>>>>>>>>>',end - start)
+    
