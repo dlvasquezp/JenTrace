@@ -201,8 +201,9 @@ def score_function (x0:list,*arg) -> float:
     print(opticalDesign.optSys)
     opticalDesign.optSys.set_varValues(x0)
     print(opticalDesign.optSys)
-    opticalDesign.solve_dsg()
+    opticalDesign.solve_dsg(caller = 'minimization')
     print('x0:', x0)
+    opticalDesign.plot
     #Generate RaySources
     raySourceList=[]
     for param in raysParam:
@@ -260,53 +261,70 @@ if __name__=='__main__':
     from JenTrace.ray_src import PointSource
     from JenTrace.opt_sys import OpSysData
     from JenTrace.opt_dsg import OpDesign
-    #from JenTrace.plt_fnc import plot_system,plot_rayTrace 
-    '''
+    
+    from scipy.optimize import approx_fprime
+    
+    from JenTrace.plt_fnc import plot_system,plot_rayTrace 
+    from JenTrace.ray_trc import print_report
+    #%%
     #import matplotlib.pyplot as plt
     print('######### Dsg 1 ##########')
     pto1  = PointSource([0,1,0],635)
     syst1 = OpSysData()
-    syst1.add_surface(2,0.05,1.7,varProp='100')
-    syst1.add_surface(11,-0.05,1.4)
-    #syst1.add_surface(10,0,1)
+    syst1.change_surface(2,0,1,surfIndex=0)
+    syst1.add_surface(12.28,0.05,1.7,varProp='100')
+    syst1.add_surface(5,-0.05,1.4)
+    syst1.add_surface(9.910, -0.386,1,varProp='110')
     syst1.plot([3])
-    #syst1.changeAperture(1,surfIndex = 1)
     
     design1  = OpDesign(pto1,syst1,aprRad=1,aprInd=2)
     design1.plot()
-    #design1.autofocus()
-    #print(design1.optSys)
+    design1.autofocus()
+    print(design1.optSys)
     #design1.plot()
     #spot_diagram(design1,noRings=9,show=True)
-    '''
-    '''
+    
+    
     #fig, ax = plt.subplots()
     #fig, ax = plot_system(design1, fig=fig, ax=ax)
     #fig, ax = plot_rayTrace(design1.raySrcTrace,fig=fig,ax=ax)
     #fig, ax = plot_rayTrace(design1.dsgPtoTrace,fig=fig,ax=ax)
     #fig, ax = plot_rayTrace(design1.dsgInfTrace,fig=fig,ax=ax)
+    #%%   
+    import matplotlib.pyplot as plt 
+    
     print('######### Dsg 2 ##########')
     pto2  = PointSource([0,1,0],635)
     syst2 = OpSysData()
-    syst2.add_surface(2.2,0.05,1.7,varProp='100')
-    syst2.add_surface(11,-0.05,1.4)
-    #syst1.add_surface(10,0,1)
+    syst2.change_surface(2,0,1,surfIndex=0)
+    syst2.add_surface(47,0.05,1.7,varProp='100')
+    syst2.add_surface(5,-0.05,1.4)
+    syst2.add_surface(20.586,-0.162,1,varProp='110')
     syst2.plot([3])
+    
+    
     design2  = OpDesign(pto2,syst2,aprRad=1,aprInd=2)
     design2.plot()
-    
+    spot_diagram(design2,noRings=9,show=True)
     #print_report(design2.initRayTrace, index=0)
     #print(design2.usrSrc)
     #print(design2.dsgPtoSrc)
     #print(design2.dsgInfSrc)
-    '''
     
+    fig, ax = plt.subplots()
+    fig, ax = plot_system(design2,fig,ax)
+    fig, ax = plot_rayTrace(design2.initRayTrace,fig=fig,ax=ax, color='r')
+    
+    print_report(design2.initRayTrace)
+    
+    #%%   
     print('######### Dsg 3 ##########')
     pto3  = PointSource([0,1,0],635)
     syst3 = OpSysData()
-    syst3.add_surface(3,0.05,1.7,varProp='110')
-    syst3.add_surface(11,-0.05,1.4)
-    syst3.add_surface(10,1/2,1)
+    syst3.change_surface(2,0,1,surfIndex=0)
+    syst3.add_surface(40,0.05,1.7,varProp='100')
+    syst3.add_surface(5,-0.05,1.4)
+    syst3.add_surface(19.950,-0.2,1,varProp='110')
     syst3.plot([3])
     #syst1.changeAperture(1,surfIndex = 1)
     
@@ -320,13 +338,29 @@ if __name__=='__main__':
     print('-------------------->>>>>>>>>>>>>')
     start = time.time()
     design3  = OpDesign(pto3,syst3,aprRad=1,aprInd=2)
+    #design3.autofocus()
+    design3.plot()
     args = (design3,
            [['hexapolar',9]],
            [spotSqrt],
            [[-1]],
            [1])
     x0 = design3.optSys.get_varValues()
-    res = minimize(score_function, x0, args=args, method='Nelder-Mead')
+    
+    #eps = np.sqrt(np.finfo(float).eps)
+    #fprime = approx_fprime(x0, lambda u:score_function(u, *args), eps)
+    
+    def gradient(x, *args):
+        eps = np.sqrt(np.finfo(float).eps)
+        # wrapper so approx_fprime sees a function f(x)
+        return approx_fprime(x, lambda u:score_function(u, *args), eps)
+    
+    bounds=[(0,100),(0,100),(-0.3,0.3)]
+    res = minimize(score_function, x0, args=args, method='Nelder-Mead',bounds=bounds)
+    #res = minimize(score_function, x0, jac=gradient, args=args, method='Newton-CG',bounds=bounds)
+    #res = minimize(score_function, x0, args=args, method='L-BFGS-B',bounds=bounds)
+    #res = minimize(score_function, x0, args=args, method='Powell',bounds=bounds)
+    
     design3.solve_dsg()
     print(res)  
     design3.plot()

@@ -160,7 +160,7 @@ if __name__=='__main__':
         pto1.new_ray([0,Y,0],[0,1,0],365)  
     #Change wavelength
     pto1.change_wnlg(300,3)
-    pto1.print_report()
+    print(pto1)
     
     
     #Point Source
@@ -168,14 +168,14 @@ if __name__=='__main__':
     #change cosine director
     LMN=[0.48666426339228763, 0.3244428422615251, 0.8111071056538127]
     pto2.change_LMN(LMN,0)
-    pto2.print_report()
+    print(pto2)
     
     #InfinitySource
     pto3=InfinitySource([0,0,1],430)
     #Change position
     XYZ=[0,1,0]
     pto3.change_XYZ(XYZ,0)
-    pto3.print_report()
+    print(pto3)
     
     #Static function to calculate direction cosines from a vector
     LMN =RaySource.calc_direcCos([3,2,5])

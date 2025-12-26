@@ -124,14 +124,18 @@ class OpDesign:
         return initRayTrace 
 
         
-    def solve_dsg(self):
+    def solve_dsg(self, caller=None):
         self.dsgSolved = False
-        self.propagate_essential_rays()
+        #self.initRayTrace = self.initial_ray_estimation()
+        self.propagate_essential_rays(caller)
         self.trace_optical_design()
         if max(self.dsgError)< self.tolError:
             self.dsgSolved = True
             self.calculate_entrance_pupil()
         else:
+            print(self.dsgError)
+            raise Warning('numerical error out of bounds, check aperture index or radius')
+            '''
             if self.dsgError[2] > self.tolError:
                 if self.designType =='telecentric':
                     self.dsgSolved   = True
@@ -144,24 +148,28 @@ class OpDesign:
             else:
                 print(self.dsgError)
                 raise Warning('numerical error out of bounds, check aperture index or radius')
-        
+            '''
     def trace_optical_design(self):
         self.raySrcTrace = trace(self.usrSrc.RayList   ,self.optSys.SurfaceData)
         self.dsgPtoTrace = trace(self.dsgPtoSrc.RayList,self.optSys.SurfaceData)
-        self.dsgInfTrace = trace(self.dsgInfSrc.RayList,self.optSys.SurfaceData)
+        #self.dsgInfTrace = trace(self.dsgInfSrc.RayList,self.optSys.SurfaceData)
         
-    def propagate_essential_rays(self):
+    def propagate_essential_rays(self, caller=None):
         self.dsgError  = []
         usrSrcError=[]
         dsgPtoSrcError=[]
-        dsgInfSrcError=[]
+        #dsgInfSrcError=[]
         for rayIndex in range(5):
             #User ray source
             if isinstance(self.usrSrc,PointSource):
                 # Calculate initial optimization direction
-                nearIdx = self.nearest_aperture_ray(rayIndex)
-                cosDirZ = self.initRayTrace[nearIdx,21,0]
-                x0  = [self.initRayTrace[nearIdx,19,0]/cosDirZ,self.initRayTrace[nearIdx,20,0]/cosDirZ]
+                if caller == 'minimization':
+                    cosDirZ = self.dsgPtoTrace[rayIndex,21,0]
+                    x0  = [self.dsgPtoTrace[rayIndex,19,0]/cosDirZ,self.dsgPtoTrace[rayIndex,20,0]/cosDirZ]
+                else:
+                    nearIdx = self.nearest_aperture_ray(rayIndex)
+                    cosDirZ = self.initRayTrace[nearIdx,21,0]
+                    x0  = [self.initRayTrace[nearIdx,19,0]/cosDirZ,self.initRayTrace[nearIdx,20,0]/cosDirZ]
                 LMN, rayError = self.propagate_ray (self.usrSrc   , rayIndex, x0)
                 self.usrSrc.change_LMN(LMN,rayIndex)
                 usrSrcError.append(rayError)
@@ -178,13 +186,13 @@ class OpDesign:
             self.dsgPtoSrc.change_LMN(LMN,rayIndex)
             dsgPtoSrcError.append(rayError)
             #Design source at infinity
-            XYZ,rayError = self.propagate_ray (self.dsgInfSrc, rayIndex, [0,0])
-            self.dsgInfSrc.change_XYZ(XYZ,rayIndex)
-            dsgInfSrcError.append(rayError)
+            #XYZ,rayError = self.propagate_ray (self.dsgInfSrc, rayIndex, [0,0])
+            #self.dsgInfSrc.change_XYZ(XYZ,rayIndex)
+            #dsgInfSrcError.append(rayError)
         
         self.dsgError.append(sum(usrSrcError))
         self.dsgError.append(sum(dsgPtoSrcError))
-        self.dsgError.append(sum(dsgInfSrcError))
+        #self.dsgError.append(sum(dsgInfSrcError))
         
     def nearest_aperture_ray(self,rayIndex)->int:
         xPosList = self.initRayTrace[:,8,self.aprInd]
@@ -219,8 +227,15 @@ class OpDesign:
             # Get result
             rayError = res.fun
             x1  = res.x
+            # If error is out of boundary, try method='Newton-CG' x1
+            if (rayError > self.tolError/3):
+                print('Powell PS')
+                res = minimize(LMN_apertureStop, x0, args=(self,ptoSrc,rayIndex), method='Powell')
+                # Get result
+                rayError = res.fun
+                x1  = res.x
             # If error is out of boundary, try brute algorithm near x1
-            if (rayError > self.tolError):
+            if (rayError > self.tolError/3):
                 print('brute PS, prev. error {}'.format(rayError))
                 rranges = (slice(x1[0]-0.05, x1[0]+0.05, 0.01), slice(x1[1]-0.05, x1[1]+0.05, 0.01))
                 resbrute = brute(LMN_apertureStop, rranges,args=(self,ptoSrc,rayIndex), full_output=True,finish=fmin)
@@ -239,7 +254,7 @@ class OpDesign:
             rayError = res.fun
             x1  = res.x
             # If error is out of boundary, try brute algorithm near x1
-            if (rayError > self.tolError):
+            if (rayError > self.tolError/3):
                 print('brute IS, prev. error {}'.format(rayError))
                 rranges = (slice(x1[0]-0.05, x1[0]+0.05, 0.01), slice(x1[1]-0.05, x1[1]+0.05, 0.01))
                 resbrute = brute(XYZ_apertureStop, rranges,args=(self,ptoSrc,rayIndex), full_output=True,finish=fmin)
@@ -268,6 +283,7 @@ class OpDesign:
         fig, ax = plot_system(self,fig,ax)
         fig, ax = plot_rayTrace(self.raySrcTrace,fig=fig,ax=ax, color='b')
         fig, ax = plot_rayTrace(self.dsgPtoTrace,fig=fig,ax=ax, color='g')
+        #fig, ax = plot_rayTrace(self.dsgInfTrace,fig=fig,ax=ax, color='r')
         ax.set_xlabel('z[mm]')
         ax.set_ylabel('y[mm]')
         ax.axis('equal')
