@@ -65,7 +65,7 @@ class RaySource:
     
     @staticmethod        
     def calc_direcCos(Vector):
-        assert (all([isinstance(q,(int,float)) for q in Vector]) 
+        assert (all([isinstance(q,(int,float,np.int64)) for q in Vector]) 
                 and len(Vector) == 3),'Invalid vector'
         #Calculate direction cosines
         norm     = np.sqrt(np.sum(np.power(Vector,2))) 

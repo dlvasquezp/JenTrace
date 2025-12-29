@@ -14,7 +14,9 @@ except ModuleNotFoundError:
     
 from JenTrace.ray_trc import trace
 from JenTrace.spt_dgm import ray_pattern, spot_diagram
+from JenTrace.ray_src import RaySource#calc_direcCos
 import numpy as np
+import copy
 
 def LMN_apertureStop (x0,*arg):
     '''
@@ -28,7 +30,7 @@ def LMN_apertureStop (x0,*arg):
     arg[1] must be point source (pointSource)
     arg[2] must be int [0,1,2,3,4]
     '''   
-    assert arg[0].__class__.__name__=='OpDesign' ,'arg[0] must be an OpDesign object' 
+    assert arg[0].__class__.__name__=='OpDesign' ,'arg[0] must be an OpDesign object, instead of {} '.format(type(arg[0])) 
     assert arg[1].__class__.__name__=='PointSource' ,'arg[1] must be a PointSource object' 
     assert arg[2] >=0 and arg[2] <=4, 'Invalid ray index (indexRay)'
     #reference the values
@@ -40,7 +42,8 @@ def LMN_apertureStop (x0,*arg):
     indexRay      = arg[2]
     
     #Calculate direction cosines
-    LMN = arg[1].calc_direcCos([vector[0],vector[1],1])  
+    print(vector)
+    LMN = RaySource.calc_direcCos([vector[0],vector[1],1])  
     #replace cosine director    
     arg[1].change_LMN(LMN,indexRay)
     #Make Raytrace
@@ -62,7 +65,7 @@ def XYZ_apertureStop (x0,*arg):
     arg[1] must be source at infinity (infinitySource)
     arg[2] must be int [0,1,2,3,4]
     '''
-    assert arg[0].__class__.__name__=='OpDesign' ,'arg[0] must be an OpDesign object' 
+    assert arg[0].__class__.__name__=='OpDesign' ,'arg[0] must be an OpDesign object, instead of {} '.format(type(arg[0]))  
     assert arg[1].__class__.__name__=='InfinitySource' ,'arg[1] must be an InfinitySource object' 
     assert arg[2] >=0 and arg[2] <=4, 'Invalid ray index (indexRay)'
     
@@ -177,6 +180,8 @@ def XYZ_image (x0:float,*arg):
     
     return error
 
+
+
 def score_function (x0:list,*arg) -> float:
     '''
     Merit wizard to generalize the construction of merit functions
@@ -225,7 +230,7 @@ def score_function (x0:list,*arg) -> float:
     
     return error
 
-def spotSqrt (RayTrace,*arg)->[float]:
+def spot_sqrt (RayTrace,*arg)->[float]:
     '''
     Merit function to calculate the mean sqrt of the Raytrace in the specified surface.
     
@@ -253,6 +258,182 @@ def spotSqrt (RayTrace,*arg)->[float]:
     
     return error
 
+def dfdx(fun,x0,dx=[1e-6], *arg):
+    '''
+    Finite difference differentiation
+    Parameters
+    ----------
+    fun : TYPE
+        DESCRIPTION.
+    x0 : TYPE
+        DESCRIPTION.
+    dx : list(floats)
+        Initial step. (broadcasteable)
+    *arg : TYPE
+        DESCRIPTION.
+
+    Returns
+    -------
+    int
+        DESCRIPTION.
+
+    '''
+    assert len(x0)==len(dx), 'Missmatch in x0 and dx'
+    assert any(dx), 'dx equal 0'
+    
+    dim= len(x0)
+    yp = []
+    y0 = fun(x0,*arg)
+    
+    for i, dx_i in enumerate(dx):
+        h = np.zeros(dim)
+        h[i] = dx_i
+        
+        y1 = fun(x0+h,*arg)
+        
+        
+        if np.isnan(y1) or np.isnan(y0):
+            return False
+        else:
+            yp_i = (y1 - y0) / np.sum(h)
+            yp.append(yp_i)
+            
+    return yp, y0
+
+def gradient_descent (fun,x0,fvalue=5e-3,eps=1e-5, eta=2e-3,*arg):
+    
+    # dx will be the change in the solution -- we'll iterate until this
+    # is small
+    dx = [1e-6,1e-6]
+    xp_old = x0.copy()
+
+    #y = fun(xp_old,*arg)
+    grad, y = dfdx(fun,xp_old,dx,*arg)
+
+    dx_norm=1
+    while (dx_norm > eps and y >fvalue):
+        print(xp_old,eta,grad)
+        xp = xp_old - np.multiply(eta,grad)
+        
+        #y = fun(xp,*arg)
+        grad, y = dfdx(fun,xp,dx, *arg)
+        
+        dx_norm = np.linalg.norm(xp - xp_old)
+        xp_old = xp.copy()
+    
+    return xp
+
+def calc_direcCos_2(vector):
+    assert (all([isinstance(q,(int,float)) for q in vector]) 
+            and len(vector) == 3),'Invalid vector'
+    #Calculate direction cosines
+    norm     = np.sqrt(np.sum(np.power(vector,2))) 
+    cosDirX  = vector[0]/norm
+    cosDirY  = vector[1]/norm
+    cosDirZ  = vector[2]/norm 
+    
+    return [cosDirX,cosDirY,cosDirZ]
+    
+
+def LMN_apertureStop_2 (x0,*arg):
+    '''
+    Merit function to calculate the error produced by the rays propaged in the 
+    direction [x0[0],x0[1],1] and the aperture stop
+    
+    x0:   (list) [vector_compX, vector_comp_y] 
+    arg: (list) [object Optical desing, object ray source, int indexRay]
+    
+    arg[0] must be Optical design
+    arg[1] must be point source (pointSource)
+    arg[2] must be int [0,1,2,3,4]
+    '''   
+    assert arg[0].__class__.__name__=='OpDesign' ,'arg[0] must be an OpDesign object, instead of {} '.format(type(arg[0])) 
+    assert arg[1].__class__.__name__=='PointSource' ,'arg[1] must be a PointSource object' 
+    assert arg[2] >=0 and arg[2] <=4, 'Invalid ray index (indexRay)'
+    #reference the values
+    #vectorList    = np.asarray(x0) 
+    
+    #print("x.shape =", np.shape(x0))
+    m, batch = x0.shape[0], x0.shape[1:]
+    #print('m, batch: ',m,batch)
+    x = np.reshape(x0, (m, -1)) 
+    
+    
+    SurfaceData   = arg[0].optSys.SurfaceData
+    ApertureRadio = arg[0].aprRad
+    ApertureIndex = arg[0].aprInd
+    ptoSrc        = copy.deepcopy(arg[1])
+    #RayList       = (arg[1].RayList).copy
+    indexRay      = arg[2]
+    
+    #print(x[0],x[1])
+    errorList=[]
+    for vecX, vecY in zip(x[0],x[1]):
+        #print(vecX,vecY)
+        #Calculate direction cosines
+        #print(vectorList)
+        LMN = ptoSrc.calc_direcCos([vecX,vecY,1])  
+        #replace cosine director    
+        ptoSrc.change_LMN(LMN,indexRay)
+        #Make Raytrace
+        RayTrace  = trace(ptoSrc.RayList,SurfaceData)
+        #Calculate error
+        error = ap_error_calc(RayTrace,ApertureRadio,indexRay,ApertureIndex)
+        errorList.append([error])
+            
+    #res = np.array(errorList).reshape(len(vectorList),)
+    res = np.array(errorList)
+    #return res
+
+    #n = res.shape[0]
+    #print(res) 
+    #print( '#########',(1,) + batch)
+    res2 = np.reshape(res, (1,) + batch) # return shape (2, ...)
+    #print(res2) 
+    #print("y.shape =", np.shape(res2))
+    
+    return res2
+    
+    '''
+    #print(x0, vectorList.ndim)
+    print("x.shape =", x0.shape)
+    if vectorList.ndim == 1:
+        vector = vectorList
+        #Calculate direction cosines
+        #print(vector)
+        #print(vector[0], type[vector[0]])
+        #print(vector[1], type[vector[1]])
+        
+        LMN = ptoSrc.calc_direcCos([vector[0],vector[1],1])  
+        #replace cosine director    
+        ptoSrc.change_LMN(LMN,indexRay)
+        #Make Raytrace
+        RayTrace  = trace(ptoSrc.RayList,SurfaceData)
+        #Calculate error
+        error = ap_error_calc(RayTrace,ApertureRadio,indexRay,ApertureIndex)
+        res = np.array(error).reshape(1,)
+        #print(np.shape(x0),np.shape(res))
+        print("y.shape =", np.shape(res))
+        return res
+    
+    if vectorList.ndim == 2:
+        #Calculate direction cosines
+        #print(vectorList)
+        errorList=[]
+        for vector in vectorList:
+            LMN = ptoSrc.calc_direcCos([vector[0],vector[1],1])  
+            #replace cosine director    
+            ptoSrc.change_LMN(LMN,indexRay)
+            #Make Raytrace
+            RayTrace  = trace(ptoSrc.RayList,SurfaceData)
+            #Calculate error
+            error = ap_error_calc(RayTrace,ApertureRadio,indexRay,ApertureIndex)
+            errorList.append([error])
+        res = np.array(errorList).reshape(len(vectorList),)
+        print(res) 
+        print("y.shape =", np.shape(res))
+        return res
+    '''
 
 
 if __name__=='__main__':
@@ -260,12 +441,71 @@ if __name__=='__main__':
     from scipy.optimize import minimize
     from JenTrace.ray_src import PointSource
     from JenTrace.opt_sys import OpSysData
-    from JenTrace.opt_dsg import OpDesign
+    from opt_dsg import OpDesign
     
     from scipy.optimize import approx_fprime
     
     from JenTrace.plt_fnc import plot_system,plot_rayTrace 
     from JenTrace.ray_trc import print_report
+    from scipy.differentiate import jacobian
+    from scipy.optimize import lsq_linear
+    #%%
+    print('######### Dsg 0 ##########')
+    pto1  = PointSource([0,1,0],635)
+    syst1 = OpSysData()
+    syst1.change_surface(2,0,1,surfIndex=0)
+    syst1.add_surface(12.28,0.05,1.7,varProp='100')
+    syst1.add_surface(5,-0.05,1.4)
+    syst1.add_surface(9.910, -0.386,1,varProp='110')
+    syst1.plot([3])
+    
+    design1  = OpDesign(pto1,syst1,aprRad=1,aprInd=2)
+    qwe = np.copy(design1.usrSrc)
+    arg=(design1,design1.usrSrc,3)
+    x0=[0,0]
+    LMN_apertureStop(x0,*arg)
+    dfdx(LMN_apertureStop,x0,[1e-6,1e-6], *arg)
+    
+    start_time = time.time()
+    res=gradient_descent (LMN_apertureStop,x0,5e-3,1e-5,2e-3,*arg)
+    print("--- %s seconds ---" % (time.time() - start_time))
+    
+    print(qwe)
+    print(res)
+    
+    
+    f_wrapped = lambda x: LMN_apertureStop_2(x,*arg)
+    
+    x0=np.array([0.1,0.2])
+    print(x0.shape,'>>>>',f_wrapped(x0))
+    
+    #x0=np.array([[0,0]])
+    #print(x0.shape,'>>>>',f_wrapped(np.array(x0)))
+    
+    #x0=np.array([[0,0],[0.1,0.1],[0,0]])
+    #print(x0.shape,'>>>>',f_wrapped(np.array(x0)))
+    
+    start_time = time.time()
+    print(x0)
+    for _ in range(10):
+        res = jacobian(f_wrapped, x0)
+        #print(res.df,res.df.shape)    
+        J = res.df
+        A = np.matmul(J.T,J)
+        b = np.matmul(-J.T,f_wrapped(x0))
+        #b = np.array([ 0, 0])
+        res2 = lsq_linear(A,b)
+        x0 = res2.x
+        print(x0)
+    print("--- %s seconds ---" % (time.time() - start_time))
+    
+    
+    #x0=np.array([[0,0],[0.1,0.1],[0,0]])
+    
+    
+    
+
+    
     #%%
     #import matplotlib.pyplot as plt
     print('######### Dsg 1 ##########')
@@ -342,7 +582,7 @@ if __name__=='__main__':
     design3.plot()
     args = (design3,
            [['hexapolar',9]],
-           [spotSqrt],
+           [spot_sqrt],
            [[-1]],
            [1])
     x0 = design3.optSys.get_varValues()
