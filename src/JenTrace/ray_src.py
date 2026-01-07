@@ -44,7 +44,7 @@ class RaySource:
         if LMN !='nan':
             assert (all([isinstance(q,(int,float)) for q in LMN]) 
                     and len(LMN) == 3
-                    and np.isclose(np.sum(np.power(LMN,2)),1)),'Invalid direction cosines'
+                    and np.isclose(np.sum(np.power(LMN,2)),1)),'Invalid direction cosines. Type {}'.format(type(LMN))
         if wvln !='nan':
             assert isinstance(wvln,(int,float)),'Invalid wavelength'
             

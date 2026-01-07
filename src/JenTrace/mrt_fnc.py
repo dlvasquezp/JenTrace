@@ -42,7 +42,7 @@ def LMN_apertureStop (x0,*arg):
     indexRay      = arg[2]
     
     #Calculate direction cosines
-    print(vector)
+    #print(vector)
     LMN = RaySource.calc_direcCos([vector[0],vector[1],1])  
     #replace cosine director    
     arg[1].change_LMN(LMN,indexRay)
@@ -448,7 +448,8 @@ if __name__=='__main__':
     from JenTrace.plt_fnc import plot_system,plot_rayTrace 
     from JenTrace.ray_trc import print_report
     from scipy.differentiate import jacobian
-    from scipy.optimize import lsq_linear
+    #from scipy.optimize import lsq_linear
+    from scipy.sparse.linalg import lsqr
     #%%
     print('######### Dsg 0 ##########')
     pto1  = PointSource([0,1,0],635)
@@ -486,7 +487,7 @@ if __name__=='__main__':
     #print(x0.shape,'>>>>',f_wrapped(np.array(x0)))
     
     start_time = time.time()
-    print(x0)
+    #print(x0)
     for _ in range(10):
         res = jacobian(f_wrapped, x0)
         #print(res.df,res.df.shape)    
@@ -494,9 +495,11 @@ if __name__=='__main__':
         A = np.matmul(J.T,J)
         b = np.matmul(-J.T,f_wrapped(x0))
         #b = np.array([ 0, 0])
-        res2 = lsq_linear(A,b)
-        x0 = res2.x
-        print(x0)
+        res2 = lsqr(A,b)
+        x0 += res2[0]
+        print(x0,res2)
+        if f_wrapped(x0) < 0.005:
+            break
     print("--- %s seconds ---" % (time.time() - start_time))
     
     
@@ -607,6 +610,34 @@ if __name__=='__main__':
     spot_diagram(design3,noRings=9,show=True)
     end = time.time()
     print('-------------------->>>>>>>>>>>>>',end - start)
+    
+    #%%
+    f_wrapped = lambda x: score_function(x,*args)
+    
+    x0 = np.array(design3.optSys.get_varValues())
+    print(x0.shape,'>>>>',f_wrapped(x0))
+    
+    #x0=np.array([[0,0]])
+    #print(x0.shape,'>>>>',f_wrapped(np.array(x0)))
+    
+    #x0=np.array([[0,0],[0.1,0.1],[0,0]])
+    #print(x0.shape,'>>>>',f_wrapped(np.array(x0)))
+    
+    start_time = time.time()
+    #print(x0)
+    for _ in range(10):
+        res = jacobian(f_wrapped, x0)
+        #print(res.df,res.df.shape)    
+        J = res.df
+        A = np.matmul(J.T,J)
+        b = np.matmul(-J.T,f_wrapped(x0))
+        #b = np.array([ 0, 0])
+        res2 = lsqr(A,b)
+        x0 += res2[0]
+        print(x0,res2)
+        if f_wrapped(x0) < 0.005:
+            break
+    print("--- %s seconds ---" % (time.time() - start_time))
     
     
     

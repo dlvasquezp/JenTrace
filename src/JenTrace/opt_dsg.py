@@ -18,7 +18,10 @@ from JenTrace.spt_dgm import spot_diagram
 from scipy.optimize import minimize, brute, fmin
 import matplotlib.pyplot as plt
 import numpy as np
-import random
+#import random
+from scipy.differentiate import jacobian
+from scipy.sparse.linalg import lsqr
+from types import SimpleNamespace
 
 class OpDesign:
     '''
@@ -164,8 +167,9 @@ class OpDesign:
             if isinstance(self.usrSrc,PointSource):
                 # Calculate initial optimization direction
                 if caller == 'minimization':
-                    cosDirZ = self.dsgPtoTrace[rayIndex,21,0]
-                    x0  = [self.dsgPtoTrace[rayIndex,19,0]/cosDirZ,self.dsgPtoTrace[rayIndex,20,0]/cosDirZ]
+                    #cosDirZ = self.dsgPtoTrace[rayIndex,21,0]
+                    #x0  = [self.dsgPtoTrace[rayIndex,19,0]/cosDirZ,self.dsgPtoTrace[rayIndex,20,0]/cosDirZ]
+                    x0  = self.usrSrc.RayList[rayIndex][1][0:2]
                 else:
                     nearIdx = self.nearest_aperture_ray(rayIndex)
                     cosDirZ = self.initRayTrace[nearIdx,21,0]
@@ -223,7 +227,11 @@ class OpDesign:
     def propagate_ray (self,ptoSrc,rayIndex,x0):
         
         if isinstance(ptoSrc,PointSource):
-            res = minimize(LMN_apertureStop, x0, args=(self,ptoSrc,rayIndex), method='Nelder-Mead')
+            # Optimize ray
+            #res = minimize(LMN_apertureStop, x0, args=(self,ptoSrc,rayIndex), method='Nelder-Mead')
+            arg=(ptoSrc,rayIndex)
+            f_wrapped = lambda x: self.LMN_essential_ray(x,*arg)
+            res = self.damped_lst (x0,f_wrapped)
             # Get result
             rayError = res.fun
             x1  = res.x
@@ -265,6 +273,77 @@ class OpDesign:
                 print(rayError)
             XYZ = [x1[0],x1[1],0]
             return XYZ, rayError
+        
+    def aperture_ray_error(self,RayTrace, indexRay)->float:
+        
+        if indexRay == 0:
+            error    = (abs(RayTrace[indexRay, 4 ,self.aprInd])
+                       +abs(RayTrace[indexRay, 3 ,self.aprInd]))
+            
+        if indexRay == 1:
+            error    = (abs(+self.aprRad - RayTrace[indexRay, 4 ,self.aprInd])
+                       +abs(RayTrace[indexRay, 3 ,self.aprInd]))
+                        
+        if indexRay == 2:
+            error    = (abs(-self.aprRad - RayTrace[indexRay, 4 ,self.aprInd])
+                       +abs(RayTrace[indexRay, 3 ,self.aprInd]))
+                       
+        if indexRay == 3:
+            error    = (abs(+self.aprRad - RayTrace[indexRay, 3 ,self.aprInd])
+                       +abs(RayTrace[indexRay, 4 ,self.aprInd]))
+            
+        if indexRay == 4:
+            error    = (abs(-self.aprRad - RayTrace[indexRay, 3 ,self.aprInd])
+                       +abs(RayTrace[indexRay, 4 ,self.aprInd]))
+        
+        return error
+    
+    def LMN_essential_ray(self, x0,*arg):
+        # For compatibility with the function Jacobian, 
+        # x0 accepts different shapes 
+        m, batch = x0.shape[0], x0.shape[1:]
+        x = np.reshape(x0, (m, -1)) 
+        
+        ptoSrc   = arg[0]
+        indexRay = arg[1]
+        errorList=[]
+        for vecX, vecY in zip(x[0],x[1]):
+            LMN = ptoSrc.calc_direcCos([vecX,vecY,1])  
+            #replace cosine director    
+            ptoSrc.change_LMN(LMN,indexRay)
+            #Make Raytrace
+            RayTrace  = trace(ptoSrc.RayList,self.optSys.SurfaceData)
+            #Calculate error
+            error = self.aperture_ray_error(RayTrace,indexRay)
+            errorList.append([error])
+         
+        # return shape 
+        errorList = np.array(errorList)
+        errorList = np.reshape(errorList,(1,) + batch) 
+        return errorList
+    
+    def damped_lst (self, x0, f_wrapped):
+        x0=np.array(x0)
+        
+        for _ in range(100):
+            resTemp = jacobian(f_wrapped, x0, initial_step=0.001)   
+            J = resTemp.df
+            A = np.matmul(J.T,J)
+            b = np.matmul(-J.T,f_wrapped(x0))
+
+            resTemp = lsqr(A,b)
+            x0 = np.sum([x0, resTemp[0]],axis=0)
+            
+            fval= f_wrapped(x0)
+            if fval < (self.tolError/5):
+                break
+        
+        res = SimpleNamespace()
+        res.fun =  fval
+        res.x = x0
+        
+        return res
+    
             
     def autofocus(self):
         #Perform optimization
@@ -316,7 +395,8 @@ class OpDesign:
 
     
 if __name__=='__main__':
-    
+    import time
+    start_time = time.time()
     # Instantiate optical system
     syst1 = OpSysData()
     syst1.change_surface(20 ,0 ,1 ,surfIndex=0)
@@ -330,9 +410,13 @@ if __name__=='__main__':
     # Point source test
     pto1  = PointSource([0,3,0],635)
     design1  = OpDesign(pto1,syst1,aprRad=1.0,aprInd=3)
+    print(design1.dsgError)
+    print("--- %s seconds ---" % (time.time() - start_time))
     design1.plot()
     design1.autofocus() 
     design1.plot()
+    print(design1.dsgError)
+    print("--- %s seconds ---" % (time.time() - start_time))
     
     #design1.calculate_ray_source()
     '''
