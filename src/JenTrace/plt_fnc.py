@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 from numpy import pi
 
 
-def plot_system(optObj, fig=[], ax=[], clearSemDia=[]):
+def plot_system(optObj, fig=[], ax=[]):
     '''
     plot_system accets either OpSysData or OpDesign
     '''   
@@ -30,19 +30,15 @@ def plot_system(optObj, fig=[], ax=[], clearSemDia=[]):
     
     #Check figure and axis instance
     assert fig.__class__.__name__=='Figure'     ,'Invalid figure [fig] instance'
-    assert ax.__class__.__name__ =='AxesSubplot','Invalid axes [ax] instance'
+    assert ax.__class__.__name__ =='Axes','Invalid axes [ax] instance'
     
     #number of surfaces
     surf_len = len(optSystem.SurfaceData)
     
     #Check if the lens radius are complete
     lensRadius =[]
-    if len(clearSemDia) == surf_len:
-        assert (all([isinstance(q,(int,float)) for q in clearSemDia])),'Invalid data type in clearSemDia'
-        assert (all([ q!=0 for q in clearSemDia])),'Invalid radius value in clearSemDia'
-        lensRadius = clearSemDia
-    else:
-        lensRadius = [apRadius for q in range(surf_len)]
+    for q in range(surf_len):
+        lensRadius.append(optSystem.SurfaceData[q][4])
     
     #list the Z coordinates
     z0=[]
@@ -204,7 +200,7 @@ def plot_rayTrace(rayTrace, fig=[], ax=[], color='b'):
     #Check instances
     assert rayTrace.__class__.__name__=='ndarray','Invalid rayTrace' 
     assert fig.__class__.__name__=='Figure'      ,'Invalid figure [fig] instance'
-    assert ax.__class__.__name__ =='AxesSubplot' ,'Invalid axes [ax] instance'
+    assert ax.__class__.__name__ =='Axes' ,'Invalid axes [ax] instance'
     #number of surfaces
     dim = rayTrace.shape
     lines2D  = []
@@ -256,14 +252,16 @@ if __name__ == '__main__':
     #syst1.add_surface(0,0,1)
     syst1.add_surface(3,-0.3,1)
     syst1.add_surface(4,+0.4,1.8)
+    print(syst1)
     clearSemDia=[2,1,3,2,2,1.5,1.5,1]
+    syst1.plot(clearSemDia)
     #Ray source
-    pto1  = PointSource([0,0.5,0],635)
+    #pto1  = PointSource([0,0.5,0],635)
     #Plot Optical system
     #syst1.invert_surface_order(0,5)#;clearSemDia=[1,1,1,1,2,1]
     fig, ax = plt.subplots()
-    plot_system(syst1,fig=fig,ax=ax,clearSemDia=clearSemDia)
-    #plt.show()
+    plot_system(syst1,fig=fig,ax=ax)
+    plt.show()
     #Plot Optical design
     #design1  = OpDesign(pto1,syst1,aprRad=1.5,aprInd=2)
     #fig, ax = plt.subplots()

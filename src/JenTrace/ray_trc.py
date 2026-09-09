@@ -113,9 +113,9 @@ def makeTrace(RayTrace,i,k):
                 Delta = F / (G + math.sqrt(G**2-c*F) )
             except ValueError:
                 #Surface not found
-                RayTrace[q,3:11,w:]  = numpy.NaN
-                RayTrace[q,12:15,w:] = numpy.NaN
-                RayTrace[q,16:22,w:] = numpy.NaN
+                RayTrace[q,3:11,w:]  = numpy.nan
+                RayTrace[q,12:15,w:] = numpy.nan
+                RayTrace[q,16:22,w:] = numpy.nan
                 break 
             
             X = X0 + Lmin1*Delta
@@ -140,9 +140,9 @@ def makeTrace(RayTrace,i,k):
                 CosIp = (1/np)*math.sqrt(np**2 - (n**2)*(1-CosI**2))
             except ValueError:
                 #ray reflected instead of refracted
-                RayTrace[q,3:11,w:]  = numpy.NaN
-                RayTrace[q,12:15,w:] = numpy.NaN
-                RayTrace[q,16:22,w:] = numpy.NaN
+                RayTrace[q,3:11,w:]  = numpy.nan
+                RayTrace[q,12:15,w:] = numpy.nan
+                RayTrace[q,16:22,w:] = numpy.nan
                 break
             
             K = c*(np*CosIp - n*CosI) 
@@ -192,7 +192,7 @@ def print_report(RayTrace,info='ray',index=0):
         if info == 'surf':
             surfInfo= RayTrace[:,:,index].T
             print("\nRAYTRACE REPORT - SURFACE #{:}\n".format(index))
-            str_row = "{: >12} ".format("Prop\Ray#")
+            str_row = "{: >12} ".format(r"Prop\Ray#")
             for rayNo in range(i):
                 str_row += "{: >12} ".format(rayNo)
             print(str_row)
@@ -206,7 +206,7 @@ def print_report(RayTrace,info='ray',index=0):
         if info == 'ray':
             surfInfo= RayTrace[index,:,:]
             print("\nRAYTRACE REPORT - RAY #{:}\n".format(index))
-            str_row = "{: >12} ".format("Prop\Surf#")
+            str_row = "{: >12} ".format(r"Prop\Surf#")
             str_row += "{: >12} ".format("Object")
             for surfNo in range(1,k-1):
                 str_row += "{: >12} ".format(surfNo)
@@ -223,7 +223,7 @@ def print_report(RayTrace,info='ray',index=0):
             if index < 24:
                 surfInfo= RayTrace[:,index,:]
                 print("\nRAYTRACE REPORT - PROPERTY #{:}\n".format(headers[index]))
-                str_row  = "{: >12} ".format("Ray#\Surf#")
+                str_row  = "{: >12} ".format(r"Ray#\Surf#")
                 str_row += "{: >12} ".format("Object")
                 for surfNo in range(1,k-1):
                     str_row += "{: >12} ".format(surfNo)

@@ -44,11 +44,11 @@ class RaySource:
         if LMN !='nan':
             assert (all([isinstance(q,(int,float)) for q in LMN]) 
                     and len(LMN) == 3
-                    and np.isclose(np.sum(np.power(LMN,2)),1)),'Invalid direction cosines'
+                    and np.isclose(np.sum(np.power(LMN,2)),1)),'Invalid direction cosines. Type {}'.format(type(LMN))
         if wvln !='nan':
             assert isinstance(wvln,(int,float)),'Invalid wavelength'
             
-    def print_report(self):
+    def __str__(self):
         headers = ['#','XPos','YPos','ZPos','XCosDir','YCosDir','ZCosDir','Wavelength']
         counter = 0
         print("\nRAY LIST")
@@ -60,11 +60,12 @@ class RaySource:
                   "{:12f} {:12f} {:12f} ".format(*ray[1])+
                   "{:12f} ".format( ray[2]))
             counter += 1
+        return str('#####')
 
     
     @staticmethod        
     def calc_direcCos(Vector):
-        assert (all([isinstance(q,(int,float)) for q in Vector]) 
+        assert (all([isinstance(q,(int,float,np.int64)) for q in Vector]) 
                 and len(Vector) == 3),'Invalid vector'
         #Calculate direction cosines
         norm     = np.sqrt(np.sum(np.power(Vector,2))) 
@@ -159,7 +160,7 @@ if __name__=='__main__':
         pto1.new_ray([0,Y,0],[0,1,0],365)  
     #Change wavelength
     pto1.change_wnlg(300,3)
-    pto1.print_report()
+    print(pto1)
     
     
     #Point Source
@@ -167,14 +168,14 @@ if __name__=='__main__':
     #change cosine director
     LMN=[0.48666426339228763, 0.3244428422615251, 0.8111071056538127]
     pto2.change_LMN(LMN,0)
-    pto2.print_report()
+    print(pto2)
     
     #InfinitySource
     pto3=InfinitySource([0,0,1],430)
     #Change position
     XYZ=[0,1,0]
     pto3.change_XYZ(XYZ,0)
-    pto3.print_report()
+    print(pto3)
     
     #Static function to calculate direction cosines from a vector
     LMN =RaySource.calc_direcCos([3,2,5])
